@@ -112,12 +112,13 @@ export default async function AdminPage({
             <h2 className="text-white font-semibold mb-6">Title Tile — Profile Information</h2>
             <ProfileForm
               profile={{
-                title:      profile.title,
-                bio:        profile.bio,
-                email:      profile.email,
-                available:  profile.available,
-                avatar_url: profile.avatar_url,
-                resume_url: profile.resume_url,
+                title:        profile.title,
+                bio:          profile.bio,
+                email:        profile.email,
+                available:    profile.available,
+                avatar_url:   profile.avatar_url,
+                resume_url:   profile.resume_url,
+                social_links: Array.isArray(profile.social_links) ? profile.social_links : [],
               }}
             />
           </section>
