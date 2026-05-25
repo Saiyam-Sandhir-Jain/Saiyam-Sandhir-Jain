@@ -1,0 +1,43 @@
+@import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --font-syne: 'Syne', sans-serif;
+  --font-dm-sans: 'DM Sans', sans-serif;
+  --accent: #FF4500;
+}
+
+/* ── Scrollbar ── */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: #111111; }
+::-webkit-scrollbar-thumb { background: #2a2a2a; border-radius: 99px; }
+::-webkit-scrollbar-thumb:hover { background: #3a3a3a; }
+
+html { -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
+body { background-color: #161616; color: #fafafa; }
+
+*:focus-visible { outline: none; box-shadow: 0 0 0 2px #FF4500; border-radius: 4px; }
+
+/* ── Footer corner glow ── */
+.footer-glow {
+  background: radial-gradient(
+    ellipse 70% 160% at 0% 100%,
+    rgba(255,69,0,0.32) 0%,
+    rgba(200,50,0,0.12) 35%,
+    transparent 60%
+  );
+}
+
+::selection { background: rgba(255,69,0,0.3); color: #fff; }
+
+/* ── View transition blur: framer-motion filter animation ── */
+[style*="filter: blur"] { will-change: filter, opacity, transform; }
+
+/* ── Bento item initial state (before BentoAnimator fires) ──
+   Prevents FOUC: items start invisible, animator shows them. */
+.bento-item {
+  transform-origin: center center;
+}

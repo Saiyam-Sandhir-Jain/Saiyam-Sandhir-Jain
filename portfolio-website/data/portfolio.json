@@ -1,0 +1,261 @@
+{
+  "meta": {
+    "title": "Saiyam Jain | AI & ML Engineer",
+    "description": "AI & Machine Learning Engineer specializing in high-performance AI solutions, machine learning research, and full-stack engineering.",
+    "url": "https://saiyamjain.dev"
+  },
+
+  "personal": {
+    "name": "I'm Saiyam Jain",
+    "firstName": "Saiyam",
+    "lastName": "Jain",
+    "initials": "SJ",
+    "title": "AI & Machine Learning Engineer",
+    "bio": "I specialize in developing and deploying high-performance AI solutions, with a strong foundation in machine learning research and full-stack engineering.",
+    "email": "saiyam@example.com",
+    "avatarUrl": "/images/avatar.jpg",
+    "available": true,
+    "resumeUrl": "/resume.pdf"
+  },
+
+  "navigation": [
+    { "label": "About",        "href": "#about" },
+    { "label": "Projects",     "href": "/projects" },
+    { "label": "Explorations", "href": "#research" }
+  ],
+
+  "experience": [
+    {
+      "id": "exp-1",
+      "role": "SDE Intern",
+      "company": "PenguinApps",
+      "startDate": "Sep 2025",
+      "endDate": "Present",
+      "current": true,
+      "url": "#"
+    },
+    {
+      "id": "exp-2",
+      "role": "Undergraduate Researcher",
+      "company": "VIT Bhopal",
+      "startDate": "Jan 2023",
+      "endDate": "Present",
+      "current": true,
+      "url": "#"
+    },
+    {
+      "id": "exp-3",
+      "role": "Summer Intern",
+      "company": "SmartInternz",
+      "startDate": "Jun 2025",
+      "endDate": "Jul 2025",
+      "current": false,
+      "url": "#"
+    },
+    {
+      "id": "exp-4",
+      "role": "Contributor",
+      "company": "GSSOC",
+      "startDate": "May 2024",
+      "endDate": "Aug 2024",
+      "current": false,
+      "url": "#"
+    }
+  ],
+
+  "skills": [
+    {
+      "id": "skill-1",
+      "category": "Generative AI & NLP",
+      "size": "full",
+      "tags": ["LLMs", "RAG", "Transformers", "LangChain", "HuggingFace", "Prompt Eng."]
+    },
+    {
+      "id": "skill-2",
+      "category": "Full-Stack Development",
+      "size": "half",
+      "tags": ["Next.js", "React", "Node.js", "PostgreSQL", "MongoDB"]
+    },
+    {
+      "id": "skill-3",
+      "category": "ML & Research",
+      "size": "half",
+      "tags": ["PyTorch", "TensorFlow", "Scikit-learn", "Research Writing"]
+    }
+  ],
+
+  "projects": [
+    {
+      "id": "proj-1",
+      "title": "Project Tile",
+      "description": "GenAI & Web Development",
+      "type": "tall",
+      "url": "#",
+      "imageUrl": "",
+      "accent": "#f97316"
+    },
+    {
+      "id": "proj-2",
+      "title": "Research Paper Tile",
+      "description": "Research Work",
+      "type": "square",
+      "subtype": "research",
+      "url": "#",
+      "imageUrl": "",
+      "backImageUrl": "",
+      "label": "research paper"
+    },
+    {
+      "id": "proj-3",
+      "title": "Patent Tile",
+      "description": "Product Design",
+      "type": "square",
+      "subtype": "patent",
+      "url": "#",
+      "imageUrl": "",
+      "backImageUrl": "",
+      "label": ""
+    }
+  ],
+
+  "explorations": {
+    "papers": [
+      {
+        "id": "paper-1",
+        "title": "Markov Logic Processes: Neuro-Symbolic Reinforcement Learning via Association Rule Mining",
+        "venue": "arXiv / Under Review",
+        "year": 2025,
+        "status": "upcoming",
+        "url": "https://scholar.google.com",
+        "summary": "Proposes MLP — a novel framework extending standard DQN with a symbolic reasoning module (LogosL) using Apriori-based association rule mining to augment Bellman targets via a potential-based reward shaping term φ_L. Evaluated on LunarLander-v3 under standard and turbulence conditions, achieving improved sample efficiency and stability.",
+        "tags": ["Reinforcement Learning", "Neuro-Symbolic AI", "DQN", "Association Rule Mining", "PyTorch"],
+        "coAuthors": ["Saiyam Jain"]
+      },
+      {
+        "id": "paper-2",
+        "title": "ISL Recognition via Dual-Glove Wearable Sensors: A Comparative Study on CNN-LSTM Architectures",
+        "venue": "IEEE / Conference Proceedings",
+        "year": 2024,
+        "status": "upcoming",
+        "url": "https://scholar.google.com",
+        "summary": "Presents a wearable dual-glove prototype for Indian Sign Language recognition using flex sensors and IMUs, classified with a hybrid CNN-LSTM pipeline. Comparative evaluation against ASL reference datasets demonstrates cross-lingual sign language adaptability.",
+        "tags": ["Sign Language", "CNN-LSTM", "IoT", "Wearable Tech", "TensorFlow"],
+        "coAuthors": ["Saiyam Jain", "et al."]
+      },
+      {
+        "id": "paper-3",
+        "title": "Exam Builder Microservice: A Domain-Specific Language for Adaptive Assessment Generation",
+        "venue": "Ed-Tech Workshop / Under Preparation",
+        "year": 2025,
+        "status": "upcoming",
+        "url": "https://scholar.google.com",
+        "summary": "Introduces .examd — a declarative DSL for encoding multi-modal exam content with semantic validation, adaptive difficulty, and automated PDF/HTML rendering pipelines. Discusses design principles for error-reduction in assessment authoring workflows.",
+        "tags": ["DSL Design", "Ed-Tech", "NLP", "Full-Stack", "Manim"],
+        "coAuthors": ["Saiyam Jain"]
+      }
+    ],
+    "patents": [
+      {
+        "id": "patent-1",
+        "title": "Dual-Glove Wearable System for Real-Time Indian Sign Language Recognition and Translation",
+        "registrationNumber": "VITB/IPR-02",
+        "year": 2024,
+        "status": "filed",
+        "summary": "A wearable dual-glove device embedding flex sensors and inertial measurement units for capturing hand gestures corresponding to Indian Sign Language alphabets and words. The system processes sensor data through an on-device lightweight neural network to produce real-time text and speech output, enabling communication for the hearing-impaired.",
+        "tags": ["IoT", "Sign Language", "Embedded Systems", "Neural Networks", "Accessibility"]
+      },
+      {
+        "id": "patent-2",
+        "title": "Adaptive Exam Generation Framework Using Declarative Domain-Specific Language",
+        "registrationNumber": "VITB/IPR-07",
+        "year": 2025,
+        "status": "upcoming",
+        "summary": "An adaptive assessment generation system based on a declarative exam definition language (.examd), enabling educators to specify multi-modal question types, difficulty tiers, and evaluation rubrics. The framework auto-renders exams to PDF and interactive HTML with semantic validation and error prevention built into the language syntax.",
+        "tags": ["DSL", "Ed-Tech", "Automated Systems", "PDF Generation", "Compiler Design"]
+      }
+    ],
+    "certificates": [
+      {
+        "id": "cert-1",
+        "title": "Deep Learning Specialization",
+        "issuer": "Coursera — deeplearning.ai",
+        "date": "2024",
+        "imageUrl": ""
+      },
+      {
+        "id": "cert-2",
+        "title": "Reinforcement Learning Fundamentals",
+        "issuer": "Coursera — University of Alberta",
+        "date": "2024",
+        "imageUrl": ""
+      },
+      {
+        "id": "cert-3",
+        "title": "AWS Cloud Practitioner",
+        "issuer": "Amazon Web Services",
+        "date": "2023",
+        "imageUrl": ""
+      },
+      {
+        "id": "cert-4",
+        "title": "TensorFlow Developer Certificate",
+        "issuer": "Google — TensorFlow",
+        "date": "2023",
+        "imageUrl": ""
+      },
+      {
+        "id": "cert-5",
+        "title": "Natural Language Processing",
+        "issuer": "Coursera — deeplearning.ai",
+        "date": "2024",
+        "imageUrl": ""
+      }
+    ],
+    "lors": [
+      {
+        "id": "lor-1",
+        "recommender": "Prof. [Name]",
+        "organization": "VIT Bhopal University",
+        "relationship": "Research Supervisor",
+        "available": true
+      },
+      {
+        "id": "lor-2",
+        "recommender": "Dr. [Name]",
+        "organization": "VIT Bhopal University",
+        "relationship": "Faculty Advisor",
+        "available": true
+      },
+      {
+        "id": "lor-3",
+        "recommender": "[Mentor Name]",
+        "organization": "PenguinApps",
+        "relationship": "Internship Mentor",
+        "available": false
+      }
+    ]
+  },
+
+  "social": [
+    {
+      "label": "LinkedIn",
+      "url": "https://linkedin.com/in/saiyamjain",
+      "icon": "linkedin"
+    },
+    {
+      "label": "GitHub",
+      "url": "https://github.com/saiyamjain",
+      "icon": "github"
+    },
+    {
+      "label": "Scholar",
+      "url": "https://scholar.google.com/saiyamjain",
+      "icon": "scholar"
+    }
+  ],
+
+  "footer": {
+    "label": "Portfolio 2025",
+    "year": 2025
+  }
+}
