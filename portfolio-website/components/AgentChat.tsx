@@ -4,19 +4,72 @@
  * components/AgentChat.tsx
  * Sams — Saiyam's RAG-powered portfolio AI agent.
  *
- * Design: dark card (#1c1a18), #FF4500 accent, Syne heading + DM Sans body.
- * Opened by clicking the "SJ" monogram in the Navbar.
- * Talks to /api/sams/query (server-side proxy — keeps Gemini key off the client).
- * Rate-limited: 10 queries per calendar week per device.
- *   - localStorage provides instant client-side UX feedback
- *   - Server enforces the real limit (immune to localStorage clearing / VPN tricks)
+ * Rate limiting strategy (two layers):
+ *   Client — localStorage gives instant UX feedback (no spinner before rejection)
+ *   Server — HttpOnly cookie (primary) + browser fingerprint (fallback) stored
+ *            in Supabase. Immune to localStorage clearing, incognito, and VPN.
  */
 
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { cn } from '@/lib/utils'
 
-// ─── Rate limiting helpers (client-side UX only) ──────────────────────────────
-// These are for UX feedback only. The real limit is enforced server-side.
+// ─── Browser fingerprint ──────────────────────────────────────────────────────
+// Sent to the server on every request. Used as the rate-limit key when the
+// HttpOnly cookie is absent (e.g. cookie was cleared, first incognito visit).
+// Two devices on the same WiFi have different screen sizes / UA / timezone →
+// they generate different fingerprints → separate rate-limit buckets.
+
+async function getDeviceFingerprint(): Promise<string> {
+  const nav = navigator as Navigator & {
+    deviceMemory?:     number
+    connection?:       { effectiveType?: string }
+    userAgentData?:    { platform?: string }
+  }
+
+  const components = [
+    nav.userAgent,
+    nav.language,
+    nav.languages?.join(',') ?? '',
+    `${screen.width}x${screen.height}`,
+    String(screen.colorDepth),
+    String(screen.pixelDepth ?? ''),
+    Intl.DateTimeFormat().resolvedOptions().timeZone,
+    String(nav.hardwareConcurrency ?? ''),
+    String(nav.deviceMemory ?? ''),
+    nav.connection?.effectiveType ?? '',
+    nav.userAgentData?.platform ?? '',
+    // Canvas fingerprint — renders a shape; GPU/font differences change the pixel hash
+    (() => {
+      try {
+        const c  = document.createElement('canvas')
+        const ctx = c.getContext('2d')
+        if (!ctx) return ''
+        ctx.textBaseline = 'top'
+        ctx.font          = '14px Arial'
+        ctx.fillStyle     = '#FF4500'
+        ctx.fillText('Sams🤖', 2, 2)
+        return c.toDataURL().slice(-50)   // last 50 chars carry the pixel variance
+      } catch { return '' }
+    })(),
+  ].join('|')
+
+  const buffer = await crypto.subtle.digest(
+    'SHA-256',
+    new TextEncoder().encode(components)
+  )
+  return Array.from(new Uint8Array(buffer))
+    .map(b => b.toString(16).padStart(2, '0'))
+    .join('')
+}
+
+// Cache the fingerprint promise so we only compute it once per page load
+let fingerprintPromise: Promise<string> | null = null
+function getCachedFingerprint(): Promise<string> {
+  if (!fingerprintPromise) fingerprintPromise = getDeviceFingerprint()
+  return fingerprintPromise
+}
+
+// ─── Client-side rate state (UX only — server is authoritative) ───────────────
 const RATE_LIMIT = 10
 const RATE_KEY   = 'sams_rl'
 
@@ -24,10 +77,9 @@ function getISOWeekKey(): string {
   const now  = new Date()
   const year = now.getUTCFullYear()
   const jan4 = new Date(Date.UTC(year, 0, 4))
-  const startOfWeek1 = new Date(jan4)
-  startOfWeek1.setUTCDate(jan4.getUTCDate() - ((jan4.getUTCDay() + 6) % 7))
-  const diff = now.getTime() - startOfWeek1.getTime()
-  const week = Math.floor(diff / (7 * 24 * 60 * 60 * 1000)) + 1
+  const start = new Date(jan4)
+  start.setUTCDate(jan4.getUTCDate() - ((jan4.getUTCDay() + 6) % 7))
+  const week = Math.floor((now.getTime() - start.getTime()) / (7 * 24 * 60 * 60 * 1000)) + 1
   return `${year}-W${String(week).padStart(2, '0')}`
 }
 
@@ -39,41 +91,42 @@ function getRateState(): RateState {
     const raw = localStorage.getItem(RATE_KEY)
     if (!raw) return { week: getISOWeekKey(), count: 0 }
     const parsed = JSON.parse(raw) as RateState
-    if (parsed.week !== getISOWeekKey()) return { week: getISOWeekKey(), count: 0 }
-    return parsed
+    return parsed.week !== getISOWeekKey() ? { week: getISOWeekKey(), count: 0 } : parsed
   } catch { return { week: getISOWeekKey(), count: 0 } }
 }
 
-function incrementRateState(): number {
+function incrementLocalCount(): number {
   const state = getRateState()
   const next: RateState = { week: getISOWeekKey(), count: state.count + 1 }
   try { localStorage.setItem(RATE_KEY, JSON.stringify(next)) } catch {}
   return RATE_LIMIT - next.count
 }
 
-function syncRateState(serverRemaining: number): void {
-  // Keep localStorage in sync with what the server says so it doesn't drift
+/** Keep localStorage in sync with what the server reports so it doesn't drift */
+function syncLocalCount(serverRemaining: number): void {
   try {
     const serverCount = RATE_LIMIT - serverRemaining
     const state = getRateState()
     if (serverCount > state.count) {
-      const synced: RateState = { week: getISOWeekKey(), count: serverCount }
-      localStorage.setItem(RATE_KEY, JSON.stringify(synced))
+      localStorage.setItem(
+        RATE_KEY,
+        JSON.stringify({ week: getISOWeekKey(), count: serverCount })
+      )
     }
   } catch {}
 }
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface Message {
-  id:        string
-  role:      'user' | 'assistant'
-  text:      string
-  loading?:  boolean
+  id:       string
+  role:     'user' | 'assistant'
+  text:     string
+  loading?: boolean
 }
 
 export interface AgentChatProps {
-  open:          boolean
-  onOpenChange:  (open: boolean) => void
+  open:           boolean
+  onOpenChange:   (open: boolean) => void
   samsAvatarUrl?: string | null
 }
 
@@ -137,7 +190,6 @@ function TrashIcon() {
   )
 }
 
-// ─── Typing indicator ─────────────────────────────────────────────────────────
 function TypingDots() {
   return (
     <div className="flex items-center gap-1 py-1">
@@ -155,32 +207,21 @@ function TypingDots() {
   )
 }
 
-// ─── Message bubble ───────────────────────────────────────────────────────────
 function MessageBubble({ msg, samsAvatarUrl }: { msg: Message; samsAvatarUrl?: string | null }) {
   const isUser = msg.role === 'user'
-
   return (
     <div className={cn('flex gap-2.5', isUser ? 'justify-end' : 'justify-start')}>
-      {/* Avatar — assistant only */}
       {!isUser && (
         <div
           className="w-7 h-7 rounded-full flex items-center justify-center shrink-0 mt-0.5 overflow-hidden"
-          style={
-            samsAvatarUrl
-              ? { border: `1px solid ${BORDER}` }
-              : { backgroundColor: ACCENT, boxShadow: '0 2px 8px rgba(255,69,0,0.3)' }
-          }
+          style={samsAvatarUrl ? { border: `1px solid ${BORDER}` } : { backgroundColor: ACCENT, boxShadow: '0 2px 8px rgba(255,69,0,0.3)' }}
         >
           <SamsAvatar url={samsAvatarUrl} size={samsAvatarUrl ? 28 : 14} />
         </div>
       )}
-
       <div className={cn('max-w-[85%] flex flex-col', isUser ? 'items-end' : 'items-start')}>
         {msg.loading ? (
-          <div
-            className="px-3.5 py-2.5 rounded-2xl"
-            style={{ backgroundColor: 'rgba(255,255,255,0.07)', border: `1px solid ${BORDER}` }}
-          >
+          <div className="px-3.5 py-2.5 rounded-2xl" style={{ backgroundColor: 'rgba(255,255,255,0.07)', border: `1px solid ${BORDER}` }}>
             <TypingDots />
           </div>
         ) : (
@@ -188,18 +229,8 @@ function MessageBubble({ msg, samsAvatarUrl }: { msg: Message; samsAvatarUrl?: s
             className="px-3.5 py-2.5 rounded-2xl text-sm font-body leading-relaxed whitespace-pre-wrap"
             style={
               isUser
-                ? {
-                    backgroundColor:        ACCENT,
-                    color:                  '#fff',
-                    borderBottomRightRadius: 6,
-                    boxShadow:              '0 4px 12px rgba(255,69,0,0.2)',
-                  }
-                : {
-                    backgroundColor:       'rgba(255,255,255,0.07)',
-                    color:                 '#e4e4e7',
-                    borderBottomLeftRadius: 6,
-                    border:                `1px solid ${BORDER}`,
-                  }
+                ? { backgroundColor: ACCENT, color: '#fff', borderBottomRightRadius: 6, boxShadow: '0 4px 12px rgba(255,69,0,0.2)' }
+                : { backgroundColor: 'rgba(255,255,255,0.07)', color: '#e4e4e7', borderBottomLeftRadius: 6, border: `1px solid ${BORDER}` }
             }
           >
             {msg.text}
@@ -210,7 +241,6 @@ function MessageBubble({ msg, samsAvatarUrl }: { msg: Message; samsAvatarUrl?: s
   )
 }
 
-// ─── Quick prompt chips ───────────────────────────────────────────────────────
 const QUICK_PROMPTS = [
   { label: 'Research',    prompt: "Tell me about Saiyam's research work" },
   { label: 'Projects',    prompt: "What are Saiyam's key projects?" },
@@ -219,8 +249,6 @@ const QUICK_PROMPTS = [
   { label: 'Internships', prompt: "Where has Saiyam interned?" },
 ]
 
-// ═════════════════════════════════════════════════════════════════════════════
-// ─── AgentChat (Sams) ────────────────────────────────────────────────────────
 // ═════════════════════════════════════════════════════════════════════════════
 export default function AgentChat({ open, onOpenChange, samsAvatarUrl }: AgentChatProps) {
   const [input,      setInput]      = useState('')
@@ -232,20 +260,17 @@ export default function AgentChat({ open, onOpenChange, samsAvatarUrl }: AgentCh
   const bottomRef = useRef<HTMLDivElement>(null)
   const inputRef  = useRef<HTMLTextAreaElement>(null)
 
-  // Initialise remaining count from localStorage (UX only — server is authoritative)
+  // Kick off fingerprint computation as soon as the component mounts so it's
+  // ready by the time the user hits send (it takes ~5 ms)
+  useEffect(() => { getCachedFingerprint() }, [])
+
   useEffect(() => {
     const state = getRateState()
     setRemaining(Math.max(0, RATE_LIMIT - state.count))
   }, [open])
 
-  useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }, [messages])
-
-  useEffect(() => {
-    if (open) setTimeout(() => inputRef.current?.focus(), 150)
-  }, [open])
-
+  useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: 'smooth' }) }, [messages])
+  useEffect(() => { if (open) setTimeout(() => inputRef.current?.focus(), 150) }, [open])
   useEffect(() => {
     if (!open) return
     const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') onOpenChange(false) }
@@ -257,7 +282,7 @@ export default function AgentChat({ open, onOpenChange, samsAvatarUrl }: AgentCh
   const send = useCallback(async (text: string) => {
     if (!text.trim() || busy) return
 
-    // Client-side UX gate — server enforces the real limit
+    // Client-side gate for instant UX — server enforces the real limit
     const state = getRateState()
     if (state.count >= RATE_LIMIT) {
       setRateDenied(true)
@@ -265,9 +290,9 @@ export default function AgentChat({ open, onOpenChange, samsAvatarUrl }: AgentCh
       return
     }
 
-    const userMsg: Message     = { id: `u-${Date.now()}`, role: 'user', text: text.trim() }
-    const pendingId            = `a-${Date.now()}`
-    const loadingMsg: Message  = { id: pendingId, role: 'assistant', text: '', loading: true }
+    const userMsg: Message    = { id: `u-${Date.now()}`, role: 'user', text: text.trim() }
+    const pendingId           = `a-${Date.now()}`
+    const loadingMsg: Message = { id: pendingId, role: 'assistant', text: '', loading: true }
 
     setMessages(prev => [...prev, userMsg, loadingMsg])
     setInput('')
@@ -275,33 +300,39 @@ export default function AgentChat({ open, onOpenChange, samsAvatarUrl }: AgentCh
     setRateDenied(false)
 
     try {
-      // ── Call our server-side proxy (keeps Gemini key + Sams URL server-only) ──
+      // Get the cached fingerprint (computed on mount, so this is instant)
+      const fingerprint = await getCachedFingerprint()
+
       const res = await fetch('/api/sams/query', {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
-        body:    JSON.stringify({ query: text.trim(), match_count: 5 }),
+        // fingerprint is sent so the server can use it as fallback if the
+        // HttpOnly cookie was cleared (e.g. user wiped site data)
+        body: JSON.stringify({ query: text.trim(), match_count: 5, fingerprint }),
       })
 
       const data = await res.json()
 
       if (res.status === 429) {
-        // Server rejected — hard limit reached
         setRateDenied(true)
         setRemaining(0)
-        syncRateState(0)
+        syncLocalCount(0)
         setMessages(prev =>
-          prev.map(m => m.id === pendingId ? { ...m, text: data.error ?? 'Weekly limit reached. Come back next Monday!', loading: false } : m)
+          prev.map(m =>
+            m.id === pendingId
+              ? { ...m, text: data.error ?? 'Weekly limit reached. Come back next Monday!', loading: false }
+              : m
+          )
         )
         return
       }
 
-      // Sync localStorage with server's authoritative remaining count
-      const serverRemaining = typeof data.remaining === 'number' ? data.remaining : null
-      if (serverRemaining !== null) {
-        syncRateState(serverRemaining)
-        setRemaining(Math.max(0, serverRemaining))
+      // Sync local count with what the server reports
+      if (typeof data.remaining === 'number') {
+        syncLocalCount(data.remaining)
+        setRemaining(Math.max(0, data.remaining))
       } else {
-        const left = incrementRateState()
+        const left = incrementLocalCount()
         setRemaining(Math.max(0, left))
       }
 
@@ -326,17 +357,11 @@ export default function AgentChat({ open, onOpenChange, samsAvatarUrl }: AgentCh
   }, [busy])
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault()
-      send(input)
-    }
+    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(input) }
   }
 
   const clearChat = () => {
-    setMessages([])
-    setInput('')
-    setBusy(false)
-    setRateDenied(false)
+    setMessages([]); setInput(''); setBusy(false); setRateDenied(false)
   }
 
   if (!open) return null
@@ -356,14 +381,12 @@ export default function AgentChat({ open, onOpenChange, samsAvatarUrl }: AgentCh
         }
       `}</style>
 
-      {/* Mobile backdrop */}
       <div
         className="fixed inset-0 z-40 sm:hidden"
         style={{ backgroundColor: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)' }}
         onClick={() => onOpenChange(false)}
       />
 
-      {/* Chat panel */}
       <div
         className={cn(
           'fixed bottom-0 left-0 right-0 z-50 flex flex-col',
@@ -379,79 +402,47 @@ export default function AgentChat({ open, onOpenChange, samsAvatarUrl }: AgentCh
         }}
       >
         {/* Header */}
-        <div
-          className="flex items-center gap-3 px-4 py-3.5 border-b shrink-0"
-          style={{ borderColor: BORDER }}
-        >
+        <div className="flex items-center gap-3 px-4 py-3.5 border-b shrink-0" style={{ borderColor: BORDER }}>
           <div
             className="w-8 h-8 rounded-full flex items-center justify-center shrink-0 overflow-hidden"
-            style={
-              samsAvatarUrl
-                ? { border: `1px solid ${BORDER}` }
-                : { backgroundColor: ACCENT, boxShadow: '0 2px 10px rgba(255,69,0,0.35)' }
-            }
+            style={samsAvatarUrl ? { border: `1px solid ${BORDER}` } : { backgroundColor: ACCENT, boxShadow: '0 2px 10px rgba(255,69,0,0.35)' }}
           >
             <SamsAvatar url={samsAvatarUrl} size={samsAvatarUrl ? 32 : 15} />
           </div>
-
           <div className="flex-1 min-w-0">
             <div className="font-heading font-bold text-white text-sm leading-none">Sams</div>
             <div className="flex items-center gap-1.5 mt-0.5">
               <div className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />
               <span className="text-zinc-500 text-[10px] font-body">
                 AI · Saiyam's Portfolio Agent
-                {remaining !== null && (
-                  <span className="ml-1 opacity-60">· {remaining} q left this week</span>
-                )}
+                {remaining !== null && <span className="ml-1 opacity-60">· {remaining} q left this week</span>}
               </span>
             </div>
           </div>
-
           <div className="flex items-center gap-1">
             {messages.length > 0 && (
-              <button
-                onClick={clearChat}
-                className="p-1.5 rounded-lg text-zinc-600 hover:text-zinc-300 transition-colors"
-                title="Clear chat"
-              >
+              <button onClick={clearChat} className="p-1.5 rounded-lg text-zinc-600 hover:text-zinc-300 transition-colors" title="Clear chat">
                 <TrashIcon />
               </button>
             )}
-            <button
-              onClick={() => onOpenChange(false)}
-              className="p-1.5 rounded-lg text-zinc-500 hover:text-white transition-colors"
-              aria-label="Close chat"
-            >
+            <button onClick={() => onOpenChange(false)} className="p-1.5 rounded-lg text-zinc-500 hover:text-white transition-colors" aria-label="Close chat">
               <ChevronDownIcon />
             </button>
           </div>
         </div>
 
         {/* Messages */}
-        <div
-          className="flex-1 overflow-y-auto px-4 py-4 space-y-3 min-h-0"
-          style={{ overscrollBehavior: 'contain' }}
-        >
+        <div className="flex-1 overflow-y-auto px-4 py-4 space-y-3 min-h-0" style={{ overscrollBehavior: 'contain' }}>
           {messages.length === 0 && (
             <div className="flex flex-col items-center justify-center h-full min-h-[200px] text-center px-4 gap-4">
               <div
                 className="w-14 h-14 rounded-full flex items-center justify-center overflow-hidden"
-                style={
-                  samsAvatarUrl
-                    ? { border: `1px solid ${BORDER}` }
-                    : {
-                        backgroundColor: 'rgba(255,69,0,0.1)',
-                        border:          '1px solid rgba(255,69,0,0.2)',
-                        color:           ACCENT,
-                      }
-                }
+                style={samsAvatarUrl ? { border: `1px solid ${BORDER}` } : { backgroundColor: 'rgba(255,69,0,0.1)', border: '1px solid rgba(255,69,0,0.2)', color: ACCENT }}
               >
                 <SamsAvatar url={samsAvatarUrl} size={samsAvatarUrl ? 56 : 26} />
               </div>
               <div>
-                <p className="font-heading font-bold text-white text-sm mb-1">
-                  Hey, I'm Sams!
-                </p>
+                <p className="font-heading font-bold text-white text-sm mb-1">Hey, I'm Sams!</p>
                 <p className="text-zinc-500 text-xs font-body leading-relaxed">
                   Ask me anything about Saiyam — his research, projects, skills, or background.
                 </p>
@@ -463,11 +454,7 @@ export default function AgentChat({ open, onOpenChange, samsAvatarUrl }: AgentCh
                     onClick={() => send(q.prompt)}
                     disabled={busy || remaining === 0}
                     className="px-3 py-1.5 rounded-full text-xs font-heading font-semibold transition-all duration-150 hover:scale-105 hover:text-white disabled:opacity-40"
-                    style={{
-                      backgroundColor: 'rgba(255,255,255,0.05)',
-                      border:          `1px solid ${BORDER}`,
-                      color:           'rgba(212,212,216,1)',
-                    }}
+                    style={{ backgroundColor: 'rgba(255,255,255,0.05)', border: `1px solid ${BORDER}`, color: 'rgba(212,212,216,1)' }}
                   >
                     {q.label}
                   </button>
@@ -480,7 +467,6 @@ export default function AgentChat({ open, onOpenChange, samsAvatarUrl }: AgentCh
             <MessageBubble key={msg.id} msg={msg} samsAvatarUrl={samsAvatarUrl} />
           ))}
 
-          {/* Rate limit notice */}
           {rateDenied && (
             <div
               className="text-center text-xs font-body py-2 px-3 rounded-lg"
@@ -493,17 +479,11 @@ export default function AgentChat({ open, onOpenChange, samsAvatarUrl }: AgentCh
           <div ref={bottomRef} />
         </div>
 
-        {/* Input area */}
-        <div
-          className="shrink-0 px-3 py-3 border-t"
-          style={{ borderColor: BORDER }}
-        >
+        {/* Input */}
+        <div className="shrink-0 px-3 py-3 border-t" style={{ borderColor: BORDER }}>
           <div
             className="flex items-end gap-2 rounded-xl px-3 py-2"
-            style={{
-              backgroundColor: 'rgba(255,255,255,0.05)',
-              border:          `1px solid ${BORDER}`,
-            }}
+            style={{ backgroundColor: 'rgba(255,255,255,0.05)', border: `1px solid ${BORDER}` }}
           >
             <textarea
               ref={inputRef}
@@ -525,9 +505,7 @@ export default function AgentChat({ open, onOpenChange, samsAvatarUrl }: AgentCh
               onClick={() => send(input)}
               disabled={!canSend}
               className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0 transition-all duration-150 hover:scale-110 disabled:opacity-40 disabled:cursor-not-allowed"
-              style={{
-                backgroundColor: canSend ? ACCENT : 'rgba(255,255,255,0.08)',
-              }}
+              style={{ backgroundColor: canSend ? ACCENT : 'rgba(255,255,255,0.08)' }}
               aria-label="Send"
             >
               {busy ? (
