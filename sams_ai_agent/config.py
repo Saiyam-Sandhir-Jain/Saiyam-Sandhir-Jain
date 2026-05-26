@@ -46,11 +46,15 @@ class Settings(BaseSettings):
     match_count: int = Field(default=5, ge=1, le=20)
 
     # ── CORS ──────────────────────────────────────────────────
-    allowed_origins: list[str] = Field(
-        default=["http://localhost:3000"],
+    # Stored as a plain str to avoid pydantic-settings v2 attempting json.loads()
+    # on a list[str] field before any validator runs (which crashes on a
+    # comma-separated value like "https://a.com,https://b.com").
+    # main.py calls settings.parsed_origins to get the actual list.
+    allowed_origins: str = Field(
+        default="http://localhost:3000",
         description=(
-            "Comma-separated list of allowed CORS origins, e.g. "
-            "https://yourportfolio.com,https://www.yourportfolio.com"
+            "Comma-separated list of allowed CORS origins. "
+            "e.g. https://yourportfolio.com,https://www.yourportfolio.com"
         ),
     )
 
@@ -88,13 +92,10 @@ class Settings(BaseSettings):
             raise ValueError("chunk_overlap must be strictly less than chunk_size")
         return v
 
-    @field_validator("allowed_origins", mode="before")
-    @classmethod
-    def parse_origins(cls, v: object) -> list[str]:
-        """Accept either a JSON array or a comma-separated string from the env."""
-        if isinstance(v, str):
-            return [origin.strip() for origin in v.split(",") if origin.strip()]
-        return v  # type: ignore[return-value]
+    @property
+    def parsed_origins(self) -> list[str]:
+        """Parse the comma-separated ALLOWED_ORIGINS string into a list."""
+        return [o.strip() for o in self.allowed_origins.split(",") if o.strip()]
 
 
 @lru_cache(maxsize=1)

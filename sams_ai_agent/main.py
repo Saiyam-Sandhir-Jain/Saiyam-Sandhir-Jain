@@ -114,7 +114,7 @@ def create_app() -> FastAPI:
     # FIX: Restrict methods and headers to only what the API actually uses.
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=settings.allowed_origins,
+        allow_origins=settings.parsed_origins,
         allow_credentials=True,
         allow_methods=["GET", "POST"],
         allow_headers=["Content-Type", "Authorization", "X-API-Key"],
@@ -150,7 +150,7 @@ def create_app() -> FastAPI:
     logger.info(
         "App created | env=%s | origins=%s | embed_dims=%d | chunk=%d | overlap=%d | threshold=%.2f | top_k=%d",
         settings.environment,
-        settings.allowed_origins,
+        settings.parsed_origins,
         settings.embedding_dimensions,
         settings.chunk_size,
         settings.chunk_overlap,
