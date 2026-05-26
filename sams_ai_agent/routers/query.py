@@ -146,8 +146,9 @@ async def sams_query(
         return QueryResponse(
             query=clean_query,
             answer=(
-                "I don't have specific information about that in my knowledge base right now. "
-                "You're welcome to reach out to Saiyam directly — check the contact section!"
+                "Hmm, I don't have that detail in my knowledge base right now — "
+                "it might be something worth asking him directly! "
+                "You can find his contact info in the contact section of the portfolio."
             ),
             retrieved_chunks=[],
             model_used=settings.gemini_chat_model,
