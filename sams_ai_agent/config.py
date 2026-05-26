@@ -45,6 +45,41 @@ class Settings(BaseSettings):
     match_threshold: float = Field(default=0.45, ge=0.0, le=1.0)
     match_count: int = Field(default=5, ge=1, le=20)
 
+    # ── CORS ──────────────────────────────────────────────────
+    allowed_origins: list[str] = Field(
+        default=["http://localhost:3000"],
+        description=(
+            "Comma-separated list of allowed CORS origins, e.g. "
+            "https://yourportfolio.com,https://www.yourportfolio.com"
+        ),
+    )
+
+    # ── Security ──────────────────────────────────────────────
+    ingest_api_key: str = Field(
+        ...,
+        description=(
+            "Secret key required in the X-API-Key header to call POST /api/ingest. "
+            "Generate with: python -c \"import secrets; print(secrets.token_urlsafe(32))\""
+        ),
+    )
+
+    # ── Uploads ───────────────────────────────────────────────
+    max_upload_bytes: int = Field(
+        default=5 * 1024 * 1024,   # 5 MB
+        description="Maximum allowed size of an uploaded .txt file in bytes.",
+    )
+
+    # ── Runtime environment ───────────────────────────────────
+    environment: str = Field(
+        default="production",
+        description=(
+            "Set to 'development' to enable /docs and /redoc endpoints. "
+            "Always 'production' in deployed environments."
+        ),
+    )
+
+    # ── Validators ────────────────────────────────────────────
+
     @field_validator("chunk_overlap")
     @classmethod
     def overlap_must_be_less_than_chunk(cls, v: int, info) -> int:
@@ -52,6 +87,14 @@ class Settings(BaseSettings):
         if v >= chunk_size:
             raise ValueError("chunk_overlap must be strictly less than chunk_size")
         return v
+
+    @field_validator("allowed_origins", mode="before")
+    @classmethod
+    def parse_origins(cls, v: object) -> list[str]:
+        """Accept either a JSON array or a comma-separated string from the env."""
+        if isinstance(v, str):
+            return [origin.strip() for origin in v.split(",") if origin.strip()]
+        return v  # type: ignore[return-value]
 
 
 @lru_cache(maxsize=1)

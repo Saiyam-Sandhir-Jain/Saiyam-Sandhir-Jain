@@ -91,6 +91,9 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
 def create_app() -> FastAPI:
     settings = get_settings()
 
+    # Disable interactive docs in production to avoid exposing the API schema.
+    is_dev = settings.environment.lower() == "development"
+
     app = FastAPI(
         title="RAG Agent API",
         description=(
@@ -98,18 +101,23 @@ def create_app() -> FastAPI:
             "powered by Google Gemini and Supabase pgvector."
         ),
         version="1.0.0",
-        docs_url="/docs",
-        redoc_url="/redoc",
+        docs_url="/docs" if is_dev else None,
+        redoc_url="/redoc" if is_dev else None,
+        openapi_url="/openapi.json" if is_dev else None,
         lifespan=lifespan,
     )
 
     # ── CORS ──────────────────────────────────────────────────────────────────
+    # FIX: allow_origins=["*"] is invalid when allow_credentials=True per the
+    # CORS spec – browsers will refuse the response. Origins are now loaded
+    # from the ALLOWED_ORIGINS env variable (comma-separated list).
+    # FIX: Restrict methods and headers to only what the API actually uses.
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=["*"],        # tighten to specific origins in production
+        allow_origins=settings.allowed_origins,
         allow_credentials=True,
-        allow_methods=["*"],
-        allow_headers=["*"],
+        allow_methods=["GET", "POST"],
+        allow_headers=["Content-Type", "Authorization", "X-API-Key"],
     )
 
     # ── Global exception handler ──────────────────────────────────────────────
@@ -137,10 +145,12 @@ def create_app() -> FastAPI:
 
     @app.get("/", include_in_schema=False)
     async def root() -> dict:
-        return {"message": "RAG Agent API is running. Visit /docs for the interactive API reference."}
+        return {"message": "RAG Agent API is running."}
 
     logger.info(
-        "App created | embed_dims=%d | chunk=%d | overlap=%d | threshold=%.2f | top_k=%d",
+        "App created | env=%s | origins=%s | embed_dims=%d | chunk=%d | overlap=%d | threshold=%.2f | top_k=%d",
+        settings.environment,
+        settings.allowed_origins,
         settings.embedding_dimensions,
         settings.chunk_size,
         settings.chunk_overlap,
@@ -159,8 +169,8 @@ if __name__ == "__main__":
 
     uvicorn.run(
         "main:app",
-        host="0.0.0.0",
+        host="127.0.0.1",   # FIX: bind to loopback only in dev; use a reverse proxy in prod
         port=8000,
-        reload=True,            # disable in production
+        reload=True,        # disable in production
         log_level="info",
     )

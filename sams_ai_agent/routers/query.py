@@ -116,12 +116,14 @@ async def sams_query(
     clean_query = _sanitize_input(payload.query)
 
     # ── 3. Embed the query ────────────────────────────────────────────────────
+    # FIX: Do not surface raw exception messages to the client.
     try:
         query_embedding = await gemini.embed_query(clean_query)
-    except Exception as exc:
+    except Exception:
+        logger.exception("Query embedding failed for query: %s", clean_query[:80])
         raise HTTPException(
             status_code=status.HTTP_502_BAD_GATEWAY,
-            detail=f"Embedding error: {exc}",
+            detail="Failed to process your query. Please try again later.",
         )
 
     # ── 4. Retrieve similar chunks from Saiyam's knowledge base ──────────────
@@ -132,10 +134,11 @@ async def sams_query(
             match_threshold=payload.match_threshold,
             match_count=payload.match_count,
         )
-    except Exception as exc:
+    except Exception:
+        logger.exception("Vector similarity search failed")
         raise HTTPException(
             status_code=status.HTTP_502_BAD_GATEWAY,
-            detail=f"Vector search error: {exc}",
+            detail="Failed to search the knowledge base. Please try again later.",
         )
 
     # ── 5. Handle no results ──────────────────────────────────────────────────
@@ -160,10 +163,11 @@ async def sams_query(
 
     try:
         answer = await gemini.generate_answer(query=clean_query, context_chunks=context_dicts)
-    except Exception as exc:
+    except Exception:
+        logger.exception("Answer generation failed for query: %s", clean_query[:80])
         raise HTTPException(
             status_code=status.HTTP_502_BAD_GATEWAY,
-            detail=f"Generation error: {exc}",
+            detail="Failed to generate an answer. Please try again later.",
         )
 
     return QueryResponse(
