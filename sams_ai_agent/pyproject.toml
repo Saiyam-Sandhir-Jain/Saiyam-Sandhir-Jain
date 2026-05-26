@@ -1,2 +1,0 @@
-[tool.vercel]
-entrypoint = "sams_ai_agent.main:app"
