@@ -1,0 +1,58 @@
+Good catch! My eyes completely played tricks on me there. Here is the corrected top section with **sandhir** fixed across your email and profile links:
+
+---
+
+# SAIYAM JAIN
+
+| saiyam.sandhir.jain@gmail.com | [linkedin.com/in/saiyam-sandhir-jain](https://www.google.com/search?q=https://linkedin.com/in/saiyam-sandhir-jain) | [github.com/Saiyam-Sandhir-Jain](https://github.com/Saiyam-Sandhir-Jain) | Google Scholar
+
+### TECHNICAL SKILLS
+
+* **Programming:** Python, Java, SQL
+* **Machine Learning:** TensorFlow, Scikit-learn, NLP, spaCy, NLTK
+* **LLM Tools:** Ollama, Llama index, Vertex AI, Gemini API, LangChain, Prompt Engineering
+* **Backend Development:** FastAPI, REST APIs, GraphQL, Celery, Redis
+* **Databases:** PostgreSQL, pgvector, ChromaDB
+* **Cloud & Tools:** Docker, AWS (EC2), Git, Postman
+
+### EDUCATION
+
+* **VIT Bhopal University** (Sehore, Madhya Pradesh) — *Sep 2023 – Present*
+B.Tech. in Computer Science, Artificial Intelligence
+* **Delhi Public School** (Guwahati, Assam) — *Apr 2020 – Mar 2022*
+Higher Secondary (12th) & Secondary (10th) Education
+
+### PROFESSIONAL EXPERIENCE
+
+**Software Development Intern** | PenguinApps (Mumbai, Maharashtra (Hybrid)) — *Sep 2025 – Nov 2025*
+
+* Designed a **7-service microservices architecture** on AWS (EC2) with OAuth 2.0-based RBAC, and a **GraphQL API gateway** unifying cross-service data fetching and eliminating client-side over-fetching.
+* Built a **production-grade RAG system** with LangChain orchestration, quantized Ollama LLM, and pgvector retrieval, achieving **4x memory reduction**; lazy-loaded pipeline via async Celery workers yielded **20% faster cold-start** vs. synchronous serving.
+* Served as **primary presenter** with a **foreign client**, translating technical concepts into business communication that secured greenlight for **1 enterprise prototype**; shipped **1 production AI system**—both within **2-month agile cycles**.
+
+**Undergraduate Researcher** | VIT Bhopal University (Sehore, Madhya Pradesh) — *Jan 2025 – Present*
+
+* Developed a **Hybrid NLP embedding framework** combining TF-IDF weighting with multi-head self-attention; introduced **Context Sensitivity Score (CSS)** achieving **97% disambiguation accuracy** and **0.84 clustering purity**.
+* Co-authored **3 peer-reviewed papers** (1 primary author); independently presented **2 at IEEE/Springer conferences** and fielded live reviewer questions, defending methodology on behalf of the team.
+
+### PROJECTS
+
+**ManifestAI | Gen-AI Ed-Tech Story Visualization Platform** — *Sep 2025 – Nov 2025*
+
+* Developed a dynamic storytelling platform where users provide seed ideas; a **PEFT fine-tuned Ollama LLM** generates structured scenes while **ChromaDB** maintains live story context, auto-propagating updates or edits without manual re-prompting.
+* Engineered a **dual-modal pipeline**—LLM narratives + **Vertex AI Imagen 3** visuals—with async offloading; **embedding-based semantic routing** in FastAPI cut redundant LLM calls by **32%**.
+* Containerized with **Docker** and system prompt pipelines for narrative coherence, achieving **<1.5s P95 latency**; edits are instantly re-embedded and surfaced to the LLM for consistent cross-scene context.
+
+**AMBER | Context-Aware Word Embeddings** — *Jul 2025 – Aug 2025*
+
+* Designed a hybrid architecture integrating **TF-IDF-guided routing with multi-head self-attention and positional bias**, fusing neural context signals with static Word2Vec representations via learnable residual combination.
+* Introduced **Context Sensitivity Score (CSS)**, a novel metric quantifying semantic shift; AMBER achieved CSS of **0.843** vs. Word2Vec's 0, demonstrating superior disambiguation of polysemous words.
+* Achieved **97% Word Sense Disambiguation accuracy** and **0.84 clustering purity** on a custom polysemy dataset, outperforming all baselines; released as the  Python package.
+
+### ACHIEVEMENTS & CO-CURRICULARS
+
+* **Smart India Hackathon 2023:** Team lead of a **top 5 finalist team** in VIT Bhopal's internal rounds, competing against 225 teams.
+* **Patent Registration:** Granted Design Registration (No. 416516-001) by the **Patent Office, Government of India** for a *Multipurpose Vegetable Chopping Board under the Designs Act, 2000*.
+* **Publications (IEEE & Springer):** Presented *Hybrid Statistical-Neural Framework for WSD via Multi-Head Attention & TF-IDF* at **IEEE SOECCS'26** (MANIT, 2026) and *Disease Classification from Symptom Descriptions via TF-IDF & LinearSVC* at **Springer NEXGCI-2025**; independently fielded live reviewer questions at both.
+* **Boys Hostel Student Council:** One of **22 members** overseeing discipline and events; supervised onboarding logistics for **3,500+ students** during a 1-month induction phase.
+* **German Language (pre-A1):** Assessed at **A1 (Elementary)** level via Preply's placement test; building towards the Goethe-Zertifikat A1 certification.

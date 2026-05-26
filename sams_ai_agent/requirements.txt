@@ -1,0 +1,9 @@
+fastapi>=0.115.0
+uvicorn[standard]>=0.30.0
+python-multipart>=0.0.9          # file upload parsing
+pydantic>=2.7.0
+pydantic-settings>=2.3.0
+google-genai>=1.5.0
+supabase>=2.7.0                  # includes async client
+httpx>=0.27.0
+python-dotenv>=1.0.1
