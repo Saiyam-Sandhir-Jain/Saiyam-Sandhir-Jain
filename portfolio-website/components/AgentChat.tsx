@@ -8,17 +8,16 @@
  *   Client — localStorage gives instant UX feedback (no spinner before rejection)
  *   Server — HttpOnly cookie (primary) + browser fingerprint (fallback) stored
  *            in Supabase. Immune to localStorage clearing, incognito, and VPN.
+ *
+ * Conversation history:
+ *   Every completed exchange is kept in state and forwarded to the backend so
+ *   Sams has context for follow-up messages like "ok", "hmm", "tell me more".
  */
 
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { cn } from '@/lib/utils'
 
 // ─── Browser fingerprint ──────────────────────────────────────────────────────
-// Sent to the server on every request. Used as the rate-limit key when the
-// HttpOnly cookie is absent (e.g. cookie was cleared, first incognito visit).
-// Two devices on the same WiFi have different screen sizes / UA / timezone →
-// they generate different fingerprints → separate rate-limit buckets.
-
 async function getDeviceFingerprint(): Promise<string> {
   const nav = navigator as Navigator & {
     deviceMemory?:     number
@@ -38,17 +37,16 @@ async function getDeviceFingerprint(): Promise<string> {
     String(nav.deviceMemory ?? ''),
     nav.connection?.effectiveType ?? '',
     nav.userAgentData?.platform ?? '',
-    // Canvas fingerprint — renders a shape; GPU/font differences change the pixel hash
     (() => {
       try {
-        const c  = document.createElement('canvas')
+        const c   = document.createElement('canvas')
         const ctx = c.getContext('2d')
         if (!ctx) return ''
         ctx.textBaseline = 'top'
         ctx.font          = '14px Arial'
         ctx.fillStyle     = '#FF4500'
         ctx.fillText('Sams🤖', 2, 2)
-        return c.toDataURL().slice(-50)   // last 50 chars carry the pixel variance
+        return c.toDataURL().slice(-50)
       } catch { return '' }
     })(),
   ].join('|')
@@ -62,7 +60,6 @@ async function getDeviceFingerprint(): Promise<string> {
     .join('')
 }
 
-// Cache the fingerprint promise so we only compute it once per page load
 let fingerprintPromise: Promise<string> | null = null
 function getCachedFingerprint(): Promise<string> {
   if (!fingerprintPromise) fingerprintPromise = getDeviceFingerprint()
@@ -102,7 +99,6 @@ function incrementLocalCount(): number {
   return RATE_LIMIT - next.count
 }
 
-/** Keep localStorage in sync with what the server reports so it doesn't drift */
 function syncLocalCount(serverRemaining: number): void {
   try {
     const serverCount = RATE_LIMIT - serverRemaining
@@ -122,6 +118,12 @@ interface Message {
   role:     'user' | 'assistant'
   text:     string
   loading?: boolean
+}
+
+// Shape sent to the backend — Gemini uses 'model' not 'assistant'
+interface HistoryTurn {
+  role:    'user' | 'model'
+  content: string
 }
 
 export interface AgentChatProps {
@@ -249,6 +251,25 @@ const QUICK_PROMPTS = [
   { label: 'Internships', prompt: "Where has Saiyam interned?" },
 ]
 
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+/**
+ * Converts the local messages array into the history format the backend expects.
+ * - Excludes loading placeholders and empty messages.
+ * - Maps 'assistant' → 'model' (Gemini's role name).
+ * - Caps at the last 16 messages (8 exchanges) — the backend caps at 8 too,
+ *   but trimming here keeps the request payload small.
+ */
+function buildHistory(messages: Message[]): HistoryTurn[] {
+  return messages
+    .filter(m => !m.loading && m.text.trim().length > 0)
+    .slice(-16)
+    .map(m => ({
+      role:    m.role === 'user' ? 'user' : 'model',
+      content: m.text,
+    }))
+}
+
 // ═════════════════════════════════════════════════════════════════════════════
 export default function AgentChat({ open, onOpenChange, samsAvatarUrl }: AgentChatProps) {
   const [input,      setInput]      = useState('')
@@ -260,8 +281,7 @@ export default function AgentChat({ open, onOpenChange, samsAvatarUrl }: AgentCh
   const bottomRef = useRef<HTMLDivElement>(null)
   const inputRef  = useRef<HTMLTextAreaElement>(null)
 
-  // Kick off fingerprint computation as soon as the component mounts so it's
-  // ready by the time the user hits send (it takes ~5 ms)
+  // Kick off fingerprint computation as soon as the component mounts
   useEffect(() => { getCachedFingerprint() }, [])
 
   useEffect(() => {
@@ -294,66 +314,78 @@ export default function AgentChat({ open, onOpenChange, samsAvatarUrl }: AgentCh
     const pendingId           = `a-${Date.now()}`
     const loadingMsg: Message = { id: pendingId, role: 'assistant', text: '', loading: true }
 
-    setMessages(prev => [...prev, userMsg, loadingMsg])
+    // Snapshot history BEFORE adding the new user message — we want the prior
+    // conversation as context, not the message we're about to send (that's the query).
+    setMessages(prev => {
+      const history = buildHistory(prev)
+
+      // Fire the fetch inside the setState callback so history is always in sync.
+      // We return the optimistic UI update immediately.
+      ;(async () => {
+        try {
+          const fingerprint = await getCachedFingerprint()
+
+          const res = await fetch('/api/sams/query', {
+            method:  'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              query:                text.trim(),
+              match_count:          5,
+              fingerprint,
+              conversation_history: history,
+            }),
+          })
+
+          const data = await res.json()
+
+          if (res.status === 429) {
+            setRateDenied(true)
+            setRemaining(0)
+            syncLocalCount(0)
+            setMessages(prev =>
+              prev.map(m =>
+                m.id === pendingId
+                  ? { ...m, text: data.error ?? 'Weekly limit reached. Come back next Monday!', loading: false }
+                  : m
+              )
+            )
+            return
+          }
+
+          if (typeof data.remaining === 'number') {
+            syncLocalCount(data.remaining)
+            setRemaining(Math.max(0, data.remaining))
+          } else {
+            const left = incrementLocalCount()
+            setRemaining(Math.max(0, left))
+          }
+
+          const answer: string = res.ok
+            ? (data.answer ?? 'Sorry, I could not find an answer for that.')
+            : (data.detail ?? data.message ?? data.error ?? 'Something went wrong. Please try again.')
+
+          setMessages(prev =>
+            prev.map(m => m.id === pendingId ? { ...m, text: answer, loading: false } : m)
+          )
+        } catch {
+          setMessages(prev =>
+            prev.map(m =>
+              m.id === pendingId
+                ? { ...m, text: 'Could not reach Sams. Please check your connection.', loading: false }
+                : m
+            )
+          )
+        } finally {
+          setBusy(false)
+        }
+      })()
+
+      return [...prev, userMsg, loadingMsg]
+    })
+
     setInput('')
     setBusy(true)
     setRateDenied(false)
-
-    try {
-      // Get the cached fingerprint (computed on mount, so this is instant)
-      const fingerprint = await getCachedFingerprint()
-
-      const res = await fetch('/api/sams/query', {
-        method:  'POST',
-        headers: { 'Content-Type': 'application/json' },
-        // fingerprint is sent so the server can use it as fallback if the
-        // HttpOnly cookie was cleared (e.g. user wiped site data)
-        body: JSON.stringify({ query: text.trim(), match_count: 5, fingerprint }),
-      })
-
-      const data = await res.json()
-
-      if (res.status === 429) {
-        setRateDenied(true)
-        setRemaining(0)
-        syncLocalCount(0)
-        setMessages(prev =>
-          prev.map(m =>
-            m.id === pendingId
-              ? { ...m, text: data.error ?? 'Weekly limit reached. Come back next Monday!', loading: false }
-              : m
-          )
-        )
-        return
-      }
-
-      // Sync local count with what the server reports
-      if (typeof data.remaining === 'number') {
-        syncLocalCount(data.remaining)
-        setRemaining(Math.max(0, data.remaining))
-      } else {
-        const left = incrementLocalCount()
-        setRemaining(Math.max(0, left))
-      }
-
-      const answer: string = res.ok
-        ? (data.answer ?? 'Sorry, I could not find an answer for that.')
-        : (data.detail ?? data.message ?? data.error ?? 'Something went wrong. Please try again.')
-
-      setMessages(prev =>
-        prev.map(m => m.id === pendingId ? { ...m, text: answer, loading: false } : m)
-      )
-    } catch {
-      setMessages(prev =>
-        prev.map(m =>
-          m.id === pendingId
-            ? { ...m, text: 'Could not reach Sams. Please check your connection.', loading: false }
-            : m
-        )
-      )
-    } finally {
-      setBusy(false)
-    }
   }, [busy])
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {

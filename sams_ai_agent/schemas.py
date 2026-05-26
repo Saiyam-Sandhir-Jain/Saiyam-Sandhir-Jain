@@ -7,7 +7,7 @@ Pydantic v2 request / response models for the Sams portfolio RAG API.
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Any
+from typing import Any, Literal
 from uuid import UUID
 
 from pydantic import BaseModel, Field, field_validator
@@ -31,13 +31,36 @@ class IngestResponse(BaseModel):
 
 # ── Query ─────────────────────────────────────────────────────────────────────
 
+class ConversationMessage(BaseModel):
+    """A single prior turn in the conversation, for multi-turn context."""
+    role:    Literal["user", "model"] = Field(
+        ...,
+        description="'user' for visitor messages, 'model' for Sams responses.",
+    )
+    content: str = Field(
+        ...,
+        min_length=1,
+        max_length=2000,
+        description="The text content of the turn.",
+    )
+
+
 class QueryRequest(BaseModel):
     """Incoming payload for /api/query."""
     query: str = Field(
         ...,
-        min_length=2,
-        max_length=1000,            # keep inputs bounded; reduces injection surface
-        description="A question for Sams about Saiyam Sandhir Jain.",
+        min_length=1,               # allow "ok", single chars — context handles meaning
+        max_length=1000,
+        description="A question or message for Sams about Saiyam Jain.",
+    )
+    conversation_history: list[ConversationMessage] = Field(
+        default_factory=list,
+        max_length=20,              # cap at 20 turns (10 exchanges) to bound context size
+        description=(
+            "Prior turns in this conversation, oldest first. "
+            "Used to give Sams context for short follow-up messages like 'ok' or 'hmm'. "
+            "Each item is {role: 'user'|'model', content: str}."
+        ),
     )
     match_threshold: float | None = Field(
         default=None, ge=0.0, le=1.0,

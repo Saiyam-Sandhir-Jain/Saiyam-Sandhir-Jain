@@ -5,7 +5,7 @@ POST /api/query
   • Pre-screens input for prompt injection patterns.
   • Embeds the sanitised query.
   • Runs cosine similarity search against Saiyam's knowledge base.
-  • Passes retrieved context + question to Sams (Gemini RAG agent).
+  • Passes retrieved context + question (+ optional conversation history) to Sams.
   • Returns the generated answer alongside source chunks.
 """
 
@@ -32,15 +32,13 @@ def _get_gemini(settings: Settings = Depends(get_settings)) -> GeminiService:
 
 # ── Prompt injection pre-filter ───────────────────────────────────────────────
 
-# Patterns that are characteristic of jailbreak / prompt injection attempts.
-# Checked case-insensitively against the raw user input BEFORE it reaches Gemini.
 _INJECTION_PATTERNS: list[re.Pattern] = [
     re.compile(p, re.IGNORECASE)
     for p in [
         r"ignore\s+(all\s+)?(previous|prior|above)\s+instructions",
         r"forget\s+(your\s+)?(rules|instructions|system\s+prompt|guidelines)",
         r"you\s+are\s+now\s+",
-        r"act\s+as\s+(if\s+you\s+are\s+|a\s+)?(?!saiyam|sams)",  # "act as X" where X is not saiyam/sams
+        r"act\s+as\s+(if\s+you\s+are\s+|a\s+)?(?!saiyam|sams)",
         r"pretend\s+(you\s+)?(have\s+no|are\s+not|don't\s+have)",
         r"new\s+persona",
         r"jailbreak",
@@ -50,7 +48,7 @@ _INJECTION_PATTERNS: list[re.Pattern] = [
         r"disregard\s+(your\s+)?(previous|prior|all)",
         r"you\s+have\s+no\s+(rules|restrictions|limits)",
         r"your\s+(true|real)\s+(self|identity|purpose)",
-        r"system\s*:\s",          # attempts to inject a new system turn
+        r"system\s*:\s",
         r"\[system\]",
         r"<\s*system\s*>",
         r"reveal\s+(your\s+)?(system\s+prompt|instructions|prompt)",
@@ -60,7 +58,7 @@ _INJECTION_PATTERNS: list[re.Pattern] = [
 ]
 
 _SAFE_FALLBACK = (
-    "I'm Sams, and I'm here to help you learn about Saiyam Sandhir Jain. "
+    "I'm Sams, and I'm here to help you learn about Saiyam Jain. "
     "Is there something about his skills, projects, or experience I can help with?"
 )
 
@@ -72,15 +70,11 @@ def _is_injection_attempt(text: str) -> bool:
 
 def _sanitize_input(text: str) -> str:
     """
-    Light sanitization pass:
-    - Collapse excessive whitespace / newlines that can be used to push
-      system instructions off-screen in some interfaces.
+    Light sanitization:
+    - Collapse excessive whitespace / newlines.
     - Strip leading/trailing whitespace.
-    Does NOT modify the semantic content of legitimate questions.
     """
-    # Collapse runs of 3+ newlines into two (preserve intentional paragraph breaks)
     text = re.sub(r"\n{3,}", "\n\n", text)
-    # Collapse runs of 4+ spaces into one
     text = re.sub(r" {4,}", " ", text)
     return text.strip()
 
@@ -91,7 +85,7 @@ def _sanitize_input(text: str) -> str:
     "/query",
     response_model=QueryResponse,
     status_code=status.HTTP_200_OK,
-    summary="Ask Sams a question about Saiyam Sandhir Jain.",
+    summary="Ask Sams a question about Saiyam Jain.",
 )
 async def sams_query(
     payload: QueryRequest,
@@ -116,7 +110,6 @@ async def sams_query(
     clean_query = _sanitize_input(payload.query)
 
     # ── 3. Embed the query ────────────────────────────────────────────────────
-    # FIX: Do not surface raw exception messages to the client.
     try:
         query_embedding = await gemini.embed_query(clean_query)
     except Exception:
@@ -156,14 +149,24 @@ async def sams_query(
             injection_blocked=False,
         )
 
-    # ── 6. Generate Sams' answer ──────────────────────────────────────────────
+    # ── 6. Build conversation history for multi-turn context ─────────────────
+    history = [
+        {"role": msg.role, "content": msg.content}
+        for msg in payload.conversation_history
+    ] if payload.conversation_history else None
+
+    # ── 7. Generate Sams' answer ──────────────────────────────────────────────
     context_dicts = [
         {"content": c.content, "metadata": c.metadata, "similarity": c.similarity}
         for c in chunks
     ]
 
     try:
-        answer = await gemini.generate_answer(query=clean_query, context_chunks=context_dicts)
+        answer = await gemini.generate_answer(
+            query=clean_query,
+            context_chunks=context_dicts,
+            conversation_history=history,
+        )
     except Exception:
         logger.exception("Answer generation failed for query: %s", clean_query[:80])
         raise HTTPException(
