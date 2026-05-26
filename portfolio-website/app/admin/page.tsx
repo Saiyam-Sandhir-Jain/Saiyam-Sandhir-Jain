@@ -5,6 +5,7 @@ import { ExperienceManager }  from './_components/ExperienceManager'
 import { SkillsManager }      from './_components/SkillsManager'
 import { HighlightsManager }  from './_components/HighlightsManager'
 import { ExplorationsManager } from './_components/ExplorationsManager'
+import { SamsManager }        from './_components/SamsManager'
 import { SignOutButton }       from './_components/SignOutButton'
 
 // ─── Fetch all admin data with the service-role client (no RLS wait) ─────────
@@ -42,6 +43,7 @@ const TABS = [
   { id: 'skills',       label: 'Skills'       },
   { id: 'highlights',   label: 'Highlights'   },
   { id: 'explorations', label: 'Explorations' },
+  { id: 'sams',         label: '✦ Sams AI'    },
 ]
 
 export default async function AdminPage({
@@ -158,6 +160,16 @@ export default async function AdminPage({
               certificates={certificates}
               lors={lors}
             />
+          </section>
+        )}
+
+        {activeTab === 'sams' && (
+          <section>
+            <h2 className="text-white font-semibold mb-2">Sams AI Agent</h2>
+            <p className="text-xs text-zinc-500 mb-6">
+              Configure the Sams AI agent — upload knowledge files and set the chat avatar.
+            </p>
+            <SamsManager samsAvatarUrl={profile?.sams_avatar_url ?? null} />
           </section>
         )}
 

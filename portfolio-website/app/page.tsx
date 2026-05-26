@@ -215,6 +215,7 @@ export default async function Home() {
       navigation={fallback.navigation}
       social={social}
       footer={fallback.footer}
+      samsAvatarUrl={p?.sams_avatar_url ?? null}
     />
   )
 }

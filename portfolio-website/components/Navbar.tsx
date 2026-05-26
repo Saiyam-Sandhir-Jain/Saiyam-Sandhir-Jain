@@ -7,13 +7,16 @@ import type { NavItem } from '@/types/portfolio'
 export type ViewId = 'home' | 'projects' | 'explorations'
 
 interface NavbarProps {
-  navigation: NavItem[]
-  currentView: ViewId
-  onViewChange: (view: ViewId) => void
+  navigation:     NavItem[]
+  currentView:    ViewId
+  onViewChange:   (view: ViewId) => void
   onAnchorClick?: (anchor: string) => void
+  /** Agent chat toggle */
+  onAgentToggle?: () => void
+  agentOpen?:     boolean
 }
 
-export function Navbar({ navigation, currentView, onViewChange, onAnchorClick }: NavbarProps) {
+export function Navbar({ navigation, currentView, onViewChange, onAnchorClick, onAgentToggle, agentOpen }: NavbarProps) {
   const [scrolled, setScrolled]   = useState(false)
   const [menuOpen, setMenuOpen]   = useState(false)
   const [navShown, setNavShown]   = useState(true)   // hide on scroll-down, reveal on scroll-up (all viewports)
@@ -104,19 +107,38 @@ export function Navbar({ navigation, currentView, onViewChange, onAnchorClick }:
           borderColor: 'rgba(255,255,255,0.09)',
         }}
       >
-        {/* Logo — "SJ" monogram on all screen sizes */}
+        {/* Logo — "SJ" monogram — clicks toggle the Sams AI agent */}
         <button
-          onClick={() => { onViewChange('home'); window.scrollTo({ top: 0, behavior: 'smooth' }); setMenuOpen(false) }}
-          className="flex items-center justify-center shrink-0 select-none"
-          aria-label="Home"
+          onClick={() => { setMenuOpen(false); onAgentToggle?.() }}
+          className="flex items-center justify-center shrink-0 select-none relative"
+          aria-label="Toggle Sams AI chat"
+          aria-expanded={agentOpen}
         >
+          {/* Blinking diamond badge — always visible, signals AI is available */}
+          <span
+            className="absolute -top-1.5 -right-1.5 text-[8px] leading-none pointer-events-none"
+            style={{
+              color:     '#FF4500',
+              animation: 'sj-diamond-blink 2s ease-in-out infinite',
+            }}
+          >
+            ✦
+          </span>
           <span
             className="font-heading font-bold text-sm leading-none tracking-tight"
-            style={{ color: '#FF4500' }}
+            style={{ color: agentOpen ? '#ff6a33' : '#FF4500' }}
           >
             SJ
           </span>
         </button>
+
+        {/* Diamond blink keyframes — injected once with the navbar */}
+        <style>{`
+          @keyframes sj-diamond-blink {
+            0%, 100% { opacity: 1;   transform: scale(1);    }
+            50%       { opacity: 0.3; transform: scale(0.75); }
+          }
+        `}</style>
 
         {/* Vertical divider — desktop only, between SJ and nav links */}
         <div

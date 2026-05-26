@@ -20,6 +20,7 @@ import { Footer }              from '@/components/Footer'
 import { BentoAnimator }       from '@/components/BentoAnimator'
 import { ProjectModal }        from '@/components/ProjectModal'
 import { Explorations, PaperModal, PatentModal } from '@/components/Explorations'
+import AgentChat               from '@/components/AgentChat'
 
 import type {
   Personal,
@@ -35,14 +36,15 @@ import type {
 } from '@/types/portfolio'
 
 export interface HomeClientProps {
-  personal:     Personal
-  experience:   ExperienceType[]
-  skills:       Skill[]
-  projects:     Project[]
-  explorations: ExplorationsType
-  navigation:   NavItem[]
-  social:       SocialLink[]
-  footer:       FooterType
+  personal:      Personal
+  experience:    ExperienceType[]
+  skills:        Skill[]
+  projects:      Project[]
+  explorations:  ExplorationsType
+  navigation:    NavItem[]
+  social:        SocialLink[]
+  footer:        FooterType
+  samsAvatarUrl?: string | null
 }
 
 // ─── Shared page variants for view transitions (identical to original) ─────
@@ -185,9 +187,10 @@ function ProjectsView({ footer, social, available }: {
 
 // ─── Root SPA ─────────────────────────────────────────────────────────────
 export function HomeClient(props: HomeClientProps) {
-  const { navigation, explorations, social, footer, personal } = props
+  const { navigation, explorations, social, footer, personal, samsAvatarUrl } = props
   const [view, setView]               = useState<ViewId>('home')
   const [selectedProject, setProject] = useState<Project | null>(null)
+  const [chatOpen, setChatOpen]       = useState(false)
   const router = useRouter()
 
   // Listen for admin saves broadcast from any tab — refresh server data in-place
@@ -207,6 +210,8 @@ export function HomeClient(props: HomeClientProps) {
         navigation={navigation}
         currentView={view}
         onViewChange={handleViewChange}
+        onAgentToggle={() => setChatOpen(o => !o)}
+        agentOpen={chatOpen}
       />
 
       {/* Animated view switcher — filter removed to keep fixed children anchored */}
@@ -254,6 +259,13 @@ export function HomeClient(props: HomeClientProps) {
       <ProjectModal
         project={selectedProject}
         onClose={() => setProject(null)}
+      />
+
+      {/* Sams AI Agent chat panel */}
+      <AgentChat
+        open={chatOpen}
+        onOpenChange={setChatOpen}
+        samsAvatarUrl={samsAvatarUrl}
       />
     </main>
   )

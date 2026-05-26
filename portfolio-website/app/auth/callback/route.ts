@@ -7,11 +7,22 @@ import type { NextRequest } from 'next/server'
  * OAuth callback handler.
  * Supabase redirects here after Google login with a one-time `code`.
  * We exchange it for a session, then enforce the admin-email allowlist.
+ *
+ * On Vercel, request.url resolves to an internal hostname — we use
+ * x-forwarded-host to get the real public domain instead.
  */
 export async function GET(request: NextRequest) {
   const { searchParams, origin } = new URL(request.url)
-  const code  = searchParams.get('code')
-  const next  = searchParams.get('next') ?? '/admin'
+  const code = searchParams.get('code')
+  const next = searchParams.get('next') ?? '/admin'
+
+  // On Vercel the reverse proxy sets x-forwarded-host to the real public domain.
+  // Using `origin` alone resolves to an internal URL and breaks the redirect.
+  const forwardedHost = request.headers.get('x-forwarded-host')
+  const publicOrigin =
+    process.env.NODE_ENV === 'production' && forwardedHost
+      ? `https://${forwardedHost}`
+      : origin
 
   if (code) {
     const cookieStore = cookies()
@@ -37,23 +48,17 @@ export async function GET(request: NextRequest) {
     const { error } = await supabase.auth.exchangeCodeForSession(code)
 
     if (!error) {
-      // Verify the signed-in email matches the ADMIN_EMAIL allowlist
       const { data: { session } } = await supabase.auth.getSession()
       const adminEmail = process.env.ADMIN_EMAIL
 
       if (session?.user?.email !== adminEmail) {
-        // Sign out the unauthorized user immediately
         await supabase.auth.signOut()
-        return NextResponse.redirect(
-          `${origin}/admin/login?error=unauthorized`
-        )
+        return NextResponse.redirect(`${publicOrigin}/admin/login?error=unauthorized`)
       }
 
-      // Success — redirect to admin dashboard (or wherever next points)
-      return NextResponse.redirect(`${origin}${next}`)
+      return NextResponse.redirect(`${publicOrigin}${next}`)
     }
   }
 
-  // Exchange failed or no code provided
-  return NextResponse.redirect(`${origin}/admin/login?error=auth_failed`)
+  return NextResponse.redirect(`${publicOrigin}/admin/login?error=auth_failed`)
 }
