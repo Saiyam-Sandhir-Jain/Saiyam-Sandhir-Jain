@@ -7,19 +7,21 @@ import type { NextRequest } from 'next/server'
  * OAuth callback handler.
  * Supabase redirects here after Google login with a one-time `code`.
  * We exchange it for a session, then enforce the admin-email allowlist.
- *
- * On Vercel, request.url resolves to an internal hostname — we use
- * x-forwarded-host to get the real public domain instead.
  */
 export async function GET(request: NextRequest) {
   const { searchParams, origin } = new URL(request.url)
   const code = searchParams.get('code')
-  const next = searchParams.get('next') ?? '/admin'
+
+  // ── Validate `next` to prevent open-redirect attacks ──────────────────────
+  // Only allow relative paths that start with a single slash (not `//evil.com`).
+  const rawNext = searchParams.get('next') ?? '/admin'
+  const next    = rawNext.startsWith('/') && !rawNext.startsWith('//')
+    ? rawNext
+    : '/admin'
 
   // On Vercel the reverse proxy sets x-forwarded-host to the real public domain.
-  // Using `origin` alone resolves to an internal URL and breaks the redirect.
   const forwardedHost = request.headers.get('x-forwarded-host')
-  const publicOrigin =
+  const publicOrigin  =
     process.env.NODE_ENV === 'production' && forwardedHost
       ? `https://${forwardedHost}`
       : origin
@@ -48,10 +50,11 @@ export async function GET(request: NextRequest) {
     const { error } = await supabase.auth.exchangeCodeForSession(code)
 
     if (!error) {
-      const { data: { session } } = await supabase.auth.getSession()
+      // Use getUser() for authoritative JWT validation
+      const { data: { user } } = await supabase.auth.getUser()
       const adminEmail = process.env.ADMIN_EMAIL
 
-      if (session?.user?.email !== adminEmail) {
+      if (user?.email !== adminEmail) {
         await supabase.auth.signOut()
         return NextResponse.redirect(`${publicOrigin}/admin/login?error=unauthorized`)
       }

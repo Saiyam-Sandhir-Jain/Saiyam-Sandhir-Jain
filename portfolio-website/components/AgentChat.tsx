@@ -6,21 +6,23 @@
  *
  * Design: dark card (#1c1a18), #FF4500 accent, Syne heading + DM Sans body.
  * Opened by clicking the "SJ" monogram in the Navbar.
- * Talks to NEXT_PUBLIC_SAMS_API_URL/api/query (Gemini + pgvector RAG).
- * Rate-limited: 10 queries per calendar week per device (localStorage).
+ * Talks to /api/sams/query (server-side proxy — keeps Gemini key off the client).
+ * Rate-limited: 10 queries per calendar week per device.
+ *   - localStorage provides instant client-side UX feedback
+ *   - Server enforces the real limit (immune to localStorage clearing / VPN tricks)
  */
 
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { cn } from '@/lib/utils'
 
-// ─── Rate limiting helpers ─────────────────────────────────────────────────────
-const RATE_LIMIT     = 10
-const RATE_KEY       = 'sams_rl'
+// ─── Rate limiting helpers (client-side UX only) ──────────────────────────────
+// These are for UX feedback only. The real limit is enforced server-side.
+const RATE_LIMIT = 10
+const RATE_KEY   = 'sams_rl'
 
 function getISOWeekKey(): string {
   const now  = new Date()
   const year = now.getUTCFullYear()
-  // ISO week: January 4 is always in week 1
   const jan4 = new Date(Date.UTC(year, 0, 4))
   const startOfWeek1 = new Date(jan4)
   startOfWeek1.setUTCDate(jan4.getUTCDate() - ((jan4.getUTCDay() + 6) % 7))
@@ -47,6 +49,18 @@ function incrementRateState(): number {
   const next: RateState = { week: getISOWeekKey(), count: state.count + 1 }
   try { localStorage.setItem(RATE_KEY, JSON.stringify(next)) } catch {}
   return RATE_LIMIT - next.count
+}
+
+function syncRateState(serverRemaining: number): void {
+  // Keep localStorage in sync with what the server says so it doesn't drift
+  try {
+    const serverCount = RATE_LIMIT - serverRemaining
+    const state = getRateState()
+    if (serverCount > state.count) {
+      const synced: RateState = { week: getISOWeekKey(), count: serverCount }
+      localStorage.setItem(RATE_KEY, JSON.stringify(synced))
+    }
+  } catch {}
 }
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -209,18 +223,16 @@ const QUICK_PROMPTS = [
 // ─── AgentChat (Sams) ────────────────────────────────────────────────────────
 // ═════════════════════════════════════════════════════════════════════════════
 export default function AgentChat({ open, onOpenChange, samsAvatarUrl }: AgentChatProps) {
-  const [input,     setInput]     = useState('')
-  const [messages,  setMessages]  = useState<Message[]>([])
-  const [busy,      setBusy]      = useState(false)
-  const [remaining, setRemaining] = useState<number | null>(null)
+  const [input,      setInput]      = useState('')
+  const [messages,   setMessages]   = useState<Message[]>([])
+  const [busy,       setBusy]       = useState(false)
+  const [remaining,  setRemaining]  = useState<number | null>(null)
   const [rateDenied, setRateDenied] = useState(false)
 
   const bottomRef = useRef<HTMLDivElement>(null)
   const inputRef  = useRef<HTMLTextAreaElement>(null)
 
-  const API_BASE = process.env.NEXT_PUBLIC_SAMS_API_URL ?? ''
-
-  // Initialise remaining count from localStorage
+  // Initialise remaining count from localStorage (UX only — server is authoritative)
   useEffect(() => {
     const state = getRateState()
     setRemaining(Math.max(0, RATE_LIMIT - state.count))
@@ -245,7 +257,7 @@ export default function AgentChat({ open, onOpenChange, samsAvatarUrl }: AgentCh
   const send = useCallback(async (text: string) => {
     if (!text.trim() || busy) return
 
-    // Rate limit check
+    // Client-side UX gate — server enforces the real limit
     const state = getRateState()
     if (state.count >= RATE_LIMIT) {
       setRateDenied(true)
@@ -253,9 +265,9 @@ export default function AgentChat({ open, onOpenChange, samsAvatarUrl }: AgentCh
       return
     }
 
-    const userMsg: Message = { id: `u-${Date.now()}`, role: 'user', text: text.trim() }
-    const pendingId = `a-${Date.now()}`
-    const loadingMsg: Message = { id: pendingId, role: 'assistant', text: '', loading: true }
+    const userMsg: Message     = { id: `u-${Date.now()}`, role: 'user', text: text.trim() }
+    const pendingId            = `a-${Date.now()}`
+    const loadingMsg: Message  = { id: pendingId, role: 'assistant', text: '', loading: true }
 
     setMessages(prev => [...prev, userMsg, loadingMsg])
     setInput('')
@@ -263,7 +275,8 @@ export default function AgentChat({ open, onOpenChange, samsAvatarUrl }: AgentCh
     setRateDenied(false)
 
     try {
-      const res = await fetch(`${API_BASE}/api/query`, {
+      // ── Call our server-side proxy (keeps Gemini key + Sams URL server-only) ──
+      const res = await fetch('/api/sams/query', {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
         body:    JSON.stringify({ query: text.trim(), match_count: 5 }),
@@ -271,12 +284,30 @@ export default function AgentChat({ open, onOpenChange, samsAvatarUrl }: AgentCh
 
       const data = await res.json()
 
-      const left = incrementRateState()
-      setRemaining(Math.max(0, left))
+      if (res.status === 429) {
+        // Server rejected — hard limit reached
+        setRateDenied(true)
+        setRemaining(0)
+        syncRateState(0)
+        setMessages(prev =>
+          prev.map(m => m.id === pendingId ? { ...m, text: data.error ?? 'Weekly limit reached. Come back next Monday!', loading: false } : m)
+        )
+        return
+      }
+
+      // Sync localStorage with server's authoritative remaining count
+      const serverRemaining = typeof data.remaining === 'number' ? data.remaining : null
+      if (serverRemaining !== null) {
+        syncRateState(serverRemaining)
+        setRemaining(Math.max(0, serverRemaining))
+      } else {
+        const left = incrementRateState()
+        setRemaining(Math.max(0, left))
+      }
 
       const answer: string = res.ok
         ? (data.answer ?? 'Sorry, I could not find an answer for that.')
-        : (data.detail ?? data.message ?? 'Something went wrong. Please try again.')
+        : (data.detail ?? data.message ?? data.error ?? 'Something went wrong. Please try again.')
 
       setMessages(prev =>
         prev.map(m => m.id === pendingId ? { ...m, text: answer, loading: false } : m)
@@ -292,7 +323,7 @@ export default function AgentChat({ open, onOpenChange, samsAvatarUrl }: AgentCh
     } finally {
       setBusy(false)
     }
-  }, [busy, API_BASE])
+  }, [busy])
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) {

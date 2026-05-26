@@ -29,7 +29,6 @@ export async function middleware(request: NextRequest) {
           return request.cookies.get(name)?.value
         },
         set(name: string, value: string, options: CookieOptions) {
-          // Forward the refreshed cookie to both the request and response
           request.cookies.set({ name, value, ...options })
           response = NextResponse.next({ request: { headers: request.headers } })
           response.cookies.set({ name, value, ...options })
@@ -43,21 +42,23 @@ export async function middleware(request: NextRequest) {
     }
   )
 
-  // ── Get the current session ────────────────────────────────────────────────
+  // ── Use getUser() — validates JWT against Supabase server (more secure than
+  //    getSession() which only reads the local cookie without server validation)
   const {
-    data: { session },
-  } = await supabase.auth.getSession()
+    data: { user },
+    error,
+  } = await supabase.auth.getUser()
 
   const loginUrl = new URL('/admin/login', request.url)
 
-  // Not authenticated → redirect to login
-  if (!session) {
+  // Not authenticated or JWT invalid → redirect to login
+  if (error || !user) {
     return NextResponse.redirect(loginUrl)
   }
 
   // Wrong email → sign out + redirect with error
   const adminEmail = process.env.ADMIN_EMAIL
-  if (session.user.email !== adminEmail) {
+  if (user.email !== adminEmail) {
     await supabase.auth.signOut()
     loginUrl.searchParams.set('error', 'unauthorized')
     return NextResponse.redirect(loginUrl)

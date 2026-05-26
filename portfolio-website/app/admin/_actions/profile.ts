@@ -3,17 +3,41 @@
 import { revalidatePath } from 'next/cache'
 import { requireAdmin } from './guard'
 
+// ─── Allowed upload types ─────────────────────────────────────────────────────
+const ALLOWED_IMAGE_MIME = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/gif'])
+const ALLOWED_IMAGE_EXT  = new Set(['jpg', 'jpeg', 'png', 'webp', 'gif'])
+const MAX_IMAGE_BYTES    = 5 * 1024 * 1024   // 5 MB
+const MAX_PDF_BYTES      = 10 * 1024 * 1024  // 10 MB
+
+function validateImageFile(file: File) {
+  if (!file || file.size === 0)            throw new Error('No file provided')
+  if (file.size > MAX_IMAGE_BYTES)         throw new Error('Image must be under 5 MB')
+  const ext = file.name.split('.').pop()?.toLowerCase() ?? ''
+  if (!ALLOWED_IMAGE_EXT.has(ext))         throw new Error('Only JPEG, PNG, WebP, or GIF images are allowed')
+  if (!ALLOWED_IMAGE_MIME.has(file.type))  throw new Error('Invalid image content type')
+}
+
 // ─── Update text-based profile fields ────────────────────────────────────────
 export async function updateProfileText(formData: FormData) {
   const db = await requireAdmin()
 
+  const title     = (formData.get('title')     as string | null)?.slice(0, 200)  ?? ''
+  const bio       = (formData.get('bio')       as string | null)?.slice(0, 2000) ?? ''
+  const email     = (formData.get('email')     as string | null)?.slice(0, 200)  ?? ''
+  const available = formData.get('available') === 'true'
+
+  // Basic email format guard
+  if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    throw new Error('Invalid email address')
+  }
+
   const { error } = await db
     .from('about_profile')
     .update({
-      title:      formData.get('title')     as string,
-      bio:        formData.get('bio')       as string,
-      email:      formData.get('email')     as string,
-      available:  formData.get('available') === 'true',
+      title,
+      bio,
+      email,
+      available,
       updated_at: new Date().toISOString(),
     })
     .neq('id', '00000000-0000-0000-0000-000000000000')
@@ -27,10 +51,17 @@ export async function updateProfileText(formData: FormData) {
 export async function updateSocialLinks(links: Array<{ label: string; url: string; icon: string }>) {
   const db = await requireAdmin()
 
+  // Sanitise each link — strip excessively long strings and enforce https/mailto
+  const clean = links.slice(0, 20).map(l => ({
+    label: String(l.label).slice(0, 100),
+    icon:  String(l.icon).slice(0, 100),
+    url:   /^https?:\/\/|^mailto:/.test(l.url) ? String(l.url).slice(0, 500) : '#',
+  }))
+
   const { error } = await db
     .from('about_profile')
     .update({
-      social_links: links,
+      social_links: clean,
       updated_at:   new Date().toISOString(),
     })
     .neq('id', '00000000-0000-0000-0000-000000000000')
@@ -42,14 +73,22 @@ export async function updateSocialLinks(links: Array<{ label: string; url: strin
 
 // ─── Upload avatar to Supabase Storage ───────────────────────────────────────
 export async function uploadAvatar(formData: FormData) {
-  const db = await requireAdmin()
+  const db   = await requireAdmin()
   const file = formData.get('avatar') as File
-  if (!file || file.size === 0) throw new Error('No file provided')
 
-  const ext      = file.name.split('.').pop()
-  const path     = `avatar.${ext}`
-  const bytes    = await file.arrayBuffer()
-  const buffer   = new Uint8Array(bytes)
+  validateImageFile(file)
+
+  // Use a fixed, trusted extension derived from the MIME type — not the file name
+  const mimeToExt: Record<string, string> = {
+    'image/jpeg': 'jpg',
+    'image/png':  'png',
+    'image/webp': 'webp',
+    'image/gif':  'gif',
+  }
+  const ext    = mimeToExt[file.type] ?? 'jpg'
+  const path   = `avatar.${ext}`
+  const bytes  = await file.arrayBuffer()
+  const buffer = new Uint8Array(bytes)
 
   const { error: uploadError } = await db.storage
     .from('avatars')
@@ -92,7 +131,11 @@ export async function deleteAvatar() {
 export async function uploadResume(formData: FormData) {
   const db   = await requireAdmin()
   const file = formData.get('resume') as File
-  if (!file || file.size === 0) throw new Error('No file provided')
+  if (!file || file.size === 0)             throw new Error('No file provided')
+  if (file.size > MAX_PDF_BYTES)            throw new Error('PDF must be under 10 MB')
+  if (file.type !== 'application/pdf')      throw new Error('Only PDF files are allowed')
+  const ext = file.name.split('.').pop()?.toLowerCase()
+  if (ext !== 'pdf')                        throw new Error('File must have a .pdf extension')
 
   const bytes  = await file.arrayBuffer()
   const buffer = new Uint8Array(bytes)
@@ -113,4 +156,3 @@ export async function uploadResume(formData: FormData) {
   revalidatePath('/')
   return { success: true, url: publicUrl }
 }
-
