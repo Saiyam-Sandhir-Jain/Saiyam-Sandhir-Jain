@@ -4,24 +4,104 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ── CSS Custom Properties ────────────────────────────────────────────────── */
+/* Dark mode is the default (:root). Light mode overrides via [data-theme="light"]. */
 :root {
   --font-syne: 'Syne', sans-serif;
   --font-dm-sans: 'DM Sans', sans-serif;
   --accent: #FF4500;
+
+  /* ── Dark mode (default) ── */
+  --bg-page:        #161616;
+  --bg-card:        #1c1a18;
+  --bg-elevated:    rgba(255, 255, 255, 0.05);
+  --bg-input:       rgba(255, 255, 255, 0.05);
+  --bg-overlay:     rgba(0, 0, 0, 0.72);
+
+  --text-primary:   #fafafa;
+  --text-secondary: #d4d4d8;
+  --text-muted:     #a1a1aa;
+
+  --border:         rgba(255, 255, 255, 0.09);
+  --border-subtle:  rgba(255, 255, 255, 0.06);
+
+  --nav-bg:         rgba(28, 26, 24, 0.88);
+  --nav-border:     rgba(255, 255, 255, 0.09);
+
+  --bg-heatmap-empty:  rgba(255, 255, 255, 0.10);
+  --scrollbar-track:       #111111;
+  --scrollbar-thumb:       #2a2a2a;
+  --scrollbar-thumb-hover: #3a3a3a;
 }
 
-/* ── Scrollbar ── */
+/* ── Light mode ───────────────────────────────────────────────────────────── */
+[data-theme="light"] {
+  --bg-page:        #CEC39C;
+  --bg-card:        #C6B68E;
+  --bg-elevated:    rgba(100, 60, 10, 0.14);
+  --bg-input:       rgba(100, 60, 10, 0.08);
+  --bg-overlay:     rgba(25, 15, 5, 0.55);
+
+  --text-primary:   #1C1108;
+  --text-secondary: #5C4428;
+  --text-muted:     #9B7A56;
+
+  --border:         rgba(100, 55, 10, 0.30);
+  --border-subtle:  rgba(100, 55, 10, 0.20);
+
+  --nav-bg:         rgba(198, 182, 142, 0.94);
+  --nav-border:     rgba(100, 55, 10, 0.34);
+
+  --bg-heatmap-empty:  rgba(100, 55, 10, 0.20);
+  --scrollbar-track:       #BFB488;
+  --scrollbar-thumb:       #A8905E;
+  --scrollbar-thumb-hover: #987840;
+}
+
+/* ── Scrollbar ────────────────────────────────────────────────────────────── */
 ::-webkit-scrollbar { width: 6px; }
-::-webkit-scrollbar-track { background: #111111; }
-::-webkit-scrollbar-thumb { background: #2a2a2a; border-radius: 99px; }
-::-webkit-scrollbar-thumb:hover { background: #3a3a3a; }
+::-webkit-scrollbar-track { background: var(--scrollbar-track); }
+::-webkit-scrollbar-thumb { background: var(--scrollbar-thumb); border-radius: 99px; }
+::-webkit-scrollbar-thumb:hover { background: var(--scrollbar-thumb-hover); }
 
+/* ── Base ─────────────────────────────────────────────────────────────────── */
 html { -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
-body { background-color: #161616; color: #fafafa; }
+body { background-color: var(--bg-page); color: var(--text-primary); }
 
+/* ── Tailwind class overrides — light mode only ───────────────────────────── *
+ * Selectively remap zinc utility classes so all Tailwind-class-based text
+ * and borders adapt to the warm beige palette without touching dark mode.     */
+html[data-theme="light"] .text-white     { color: var(--text-primary); }
+html[data-theme="light"] .text-zinc-100  { color: var(--text-primary); }
+html[data-theme="light"] .text-zinc-200  { color: var(--text-secondary); }
+html[data-theme="light"] .text-zinc-300  { color: var(--text-secondary); }
+html[data-theme="light"] .text-zinc-400  { color: var(--text-secondary); }
+html[data-theme="light"] .text-zinc-500  { color: var(--text-muted); }
+html[data-theme="light"] .text-zinc-600  { color: var(--text-muted); }
+html[data-theme="light"] .text-zinc-700  { color: var(--text-muted); }
+
+html[data-theme="light"] .border-zinc-600 { border-color: var(--border); }
+html[data-theme="light"] .border-zinc-700 { border-color: var(--border); }
+html[data-theme="light"] .border-zinc-800 { border-color: var(--border-subtle); }
+
+html[data-theme="light"] .hover\:text-white:hover      { color: var(--text-primary); }
+html[data-theme="light"] .hover\:text-zinc-200:hover   { color: var(--text-primary); }
+html[data-theme="light"] .hover\:text-zinc-300:hover   { color: var(--text-secondary); }
+html[data-theme="light"] .hover\:bg-zinc-800:hover     { background-color: var(--bg-elevated); }
+html[data-theme="light"] .hover\:border-zinc-600:hover { border-color: var(--border); }
+
+/* ── Orange hover fix — light mode ───────────────────────────────────────── *
+ * Ensures hover:text-[#FF4500] beats the zinc overrides above (specificity). */
+html[data-theme="light"] .hover\:text-\[\#FF4500\]:hover { color: #FF4500; }
+
+/* Focus ring — both modes */
 *:focus-visible { outline: none; box-shadow: 0 0 0 2px #FF4500; border-radius: 4px; }
 
-/* ── Footer corner glow ── */
+
+/* ── Group-hover text overrides — light mode only ────────────────────────── */
+html[data-theme="light"] .group:hover .group-hover\:text-zinc-100 { color: var(--text-primary); }
+html[data-theme="light"] .group:hover .group-hover\:text-white    { color: var(--text-primary); }
+/* ── Footer corner glow ───────────────────────────────────────────────────── */
 .footer-glow {
   background: radial-gradient(
     ellipse 70% 160% at 0% 100%,
@@ -30,14 +110,23 @@ body { background-color: #161616; color: #fafafa; }
     transparent 60%
   );
 }
+[data-theme="light"] .footer-glow {
+  background: radial-gradient(
+    ellipse 70% 160% at 0% 100%,
+    rgba(255,69,0,0.22) 0%,
+    rgba(200,50,0,0.08) 35%,
+    transparent 60%
+  );
+}
 
+/* ── Selection ────────────────────────────────────────────────────────────── */
 ::selection { background: rgba(255,69,0,0.3); color: #fff; }
+[data-theme="light"] ::selection { background: rgba(255,69,0,0.25); color: var(--text-primary); }
 
-/* ── View transition blur: framer-motion filter animation ── */
+/* ── View transition blur: framer-motion filter animation ─────────────────── */
 [style*="filter: blur"] { will-change: filter, opacity, transform; }
 
-/* ── Bento item initial state (before BentoAnimator fires) ──
-   Prevents FOUC: items start invisible, animator shows them. */
+/* ── Bento item initial state (before BentoAnimator fires) ───────────────── */
 .bento-item {
   transform-origin: center center;
 }

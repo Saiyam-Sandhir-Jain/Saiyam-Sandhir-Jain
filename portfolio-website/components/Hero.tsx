@@ -40,8 +40,8 @@ function StatusBadge({ available, narrow = false }: { available: boolean; narrow
     <div
       className="flex items-center gap-1.5 rounded-full"
       style={{
-        backgroundColor: 'rgba(255,255,255,0.05)',
-        border: '1px solid rgba(255,255,255,0.08)',
+        backgroundColor: 'var(--bg-elevated)',
+        border: '1px solid var(--border)',
         padding: narrow ? '4px 8px' : '4px 10px',
       }}
     >
@@ -69,7 +69,7 @@ export function Hero({ personal }: { personal: Personal }) {
     <div className="bento-item">
       <div
         className="relative overflow-hidden rounded-xl border p-5 lg:p-6"
-        style={{ backgroundColor: '#1c1a18', borderColor: 'rgba(255,255,255,0.09)' }}
+        style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border)' }}
       >
         {/* Subtle radial gradient */}
         <div className="pointer-events-none absolute inset-0" style={{

@@ -14,7 +14,7 @@ export function Experience({ items }: ExperienceProps) {
   return (
     <div
       className="bento-item rounded-xl p-5"
-      style={{ backgroundColor: '#1c1a18', border: '1px solid rgba(255,255,255,0.09)' }}
+      style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)' }}
     >
       {/* Section header */}
       <div className="flex items-center gap-2 mb-3">
@@ -45,8 +45,9 @@ export function Experience({ items }: ExperienceProps) {
               hoveredId !== null && hoveredId !== item.id
                 ? 'opacity-40'
                 : 'opacity-100',
-              idx < items.length - 1 && 'border-b border-zinc-800/60'
+              idx < items.length - 1 && 'border-b'
             )}
+            style={idx < items.length - 1 ? { borderColor: 'var(--border-subtle)' } : undefined}
           >
             {/* Left: role + dates */}
             <div>

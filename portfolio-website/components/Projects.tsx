@@ -162,7 +162,7 @@ export function TallProject({ project, onClick }: { project: Project; onClick?: 
       onClick={() => onClick?.(project)}
       className="bento-item group rounded-xl flex flex-col overflow-hidden cursor-pointer
                  transition-all duration-300 flex-1 h-full relative"
-      style={{ backgroundColor: '#1c1a18', border: '1px solid rgba(255,255,255,0.09)' }}
+      style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)' }}
     >
       {/* Hover border glow — no blur so phone stays crisp */}
       <div
@@ -213,7 +213,7 @@ export function SquareProject({ project, onClick }: { project: Project; onClick?
       onClick={() => onClick?.(project)}
       className="bento-item group rounded-xl p-4 flex flex-col overflow-hidden cursor-pointer
                  transition-all duration-300 flex-1 relative"
-      style={{ backgroundColor: '#1c1a18', border: '1px solid rgba(255,255,255,0.09)', minHeight: '280px' }}
+      style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)', minHeight: '280px' }}
     >
       <div
         className="absolute inset-0 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"

@@ -11,7 +11,7 @@ export function Footer({ footer, social }: FooterProps) {
   return (
     <footer
       className="bento-item rounded-xl relative overflow-hidden"
-      style={{ backgroundColor: '#1c1a18', border: '1px solid rgba(255,255,255,0.09)' }}
+      style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)' }}
     >
       {/* Orange glow left edge */}
       <div className="footer-glow absolute inset-0 pointer-events-none" />
@@ -31,9 +31,11 @@ export function Footer({ footer, social }: FooterProps) {
                 rel="noopener noreferrer"
                 className={cn(
                   'px-2 py-1 rounded-full text-xs font-heading font-medium',
-                  'text-zinc-400 hover:text-white transition-colors duration-150',
-                  'hover:text-[#FF4500]'
+                  'transition-colors duration-150'
                 )}
+                style={{ color: 'var(--text-muted)' }}
+                onMouseEnter={e => { (e.currentTarget as HTMLAnchorElement).style.color = '#FF4500' }}
+                onMouseLeave={e => { (e.currentTarget as HTMLAnchorElement).style.color = 'var(--text-muted)' }}
               >
                 {link.label}
               </a>

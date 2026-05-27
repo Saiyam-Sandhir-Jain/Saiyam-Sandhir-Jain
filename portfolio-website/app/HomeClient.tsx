@@ -205,7 +205,7 @@ export function HomeClient(props: HomeClientProps) {
   const handleViewChange = useCallback((v: ViewId) => setView(v), [])
 
   return (
-    <main className="min-h-screen" style={{ backgroundColor: '#161616' }}>
+    <main className="min-h-screen" style={{ backgroundColor: 'var(--bg-page)' }}>
       <Navbar
         navigation={navigation}
         currentView={view}

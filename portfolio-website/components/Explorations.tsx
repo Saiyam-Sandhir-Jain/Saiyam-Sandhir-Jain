@@ -8,8 +8,8 @@ import type { ResearchPaper, Patent, Certificate, LOR, Explorations as Explorati
 
 // ─── Shared token colours ──────────────────────────────────────────────────
 const ACCENT        = '#FF4500'
-const CARD_BG       = '#1c1a18'
-const CARD_BORDER   = 'rgba(255,255,255,0.09)'
+const CARD_BG       = 'var(--bg-card)'
+const CARD_BORDER   = 'var(--border)'
 const CARD_BORDER_H = 'rgba(255,69,0,0.25)'
 
 // ─── Status badge colours ──────────────────────────────────────────────────
@@ -54,7 +54,7 @@ function Tag({ label }: { label: string }) {
   return (
     <span
       className="px-2 py-0.5 rounded text-[11px] font-body"
-      style={{ backgroundColor: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.55)' }}
+      style={{ backgroundColor: 'var(--bg-elevated)', border: '1px solid var(--border)', color: 'var(--text-secondary)' }}
     >
       {label}
     </span>
@@ -132,7 +132,7 @@ export function PaperModal({ paper, onClose }: { paper: ResearchPaper | null; on
               transition={{ duration: 0.25 }}
               onClick={onClose}
               className="fixed inset-0 z-50"
-              style={{ backgroundColor: 'rgba(0,0,0,0.72)', backdropFilter: 'blur(8px)' }}
+              style={{ backgroundColor: 'var(--bg-overlay)', backdropFilter: 'blur(8px)' }}
             />
             <motion.div
               key="paper-modal"
@@ -145,9 +145,9 @@ export function PaperModal({ paper, onClose }: { paper: ResearchPaper | null; on
               {/* ── overflow:clip clips to border-radius without creating a scroll container ── */}
               <div
                 className="rounded-2xl relative flex flex-col"
-                style={{ backgroundColor: CARD_BG, border: '1px solid rgba(255,255,255,0.12)', maxHeight: 'min(88dvh, 88vh)', overflow: 'hidden' }}
+                style={{ backgroundColor: CARD_BG, border: '1px solid var(--border)', maxHeight: 'min(88dvh, 88vh)', overflow: 'hidden' }}
               >
-                <div className="absolute top-2.5 left-1/2 -translate-x-1/2 w-10 h-1 rounded-full shrink-0" style={{ backgroundColor: 'rgba(255,255,255,0.12)' }} />
+                <div className="absolute top-2.5 left-1/2 -translate-x-1/2 w-10 h-1 rounded-full shrink-0" style={{ backgroundColor: 'var(--border)' }} />
                 <div className="pointer-events-none absolute inset-0" style={{ background: 'radial-gradient(ellipse 60% 80% at 20% 100%, rgba(255,69,0,0.12) 0%, transparent 60%)' }} />
 
                 {/* ── Scrollable body — overflowY:scroll + touchAction:pan-y = reliable on all browsers/devices ── */}
@@ -168,17 +168,17 @@ export function PaperModal({ paper, onClose }: { paper: ResearchPaper | null; on
                         <p className="text-zinc-600 font-body text-[11px] mt-0.5">Authors: {paper.coAuthors.join(', ')}</p>
                       )}
                     </div>
-                    <button onClick={onClose} className="shrink-0 w-9 h-9 rounded-full flex items-center justify-center transition-all duration-200 hover:scale-110" style={{ backgroundColor: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', touchAction: 'manipulation' }}>
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.7)" strokeWidth="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                    <button onClick={onClose} className="shrink-0 w-9 h-9 rounded-full flex items-center justify-center transition-all duration-200 hover:scale-110" style={{ backgroundColor: 'var(--bg-elevated)', border: '1px solid var(--border)', touchAction: 'manipulation' }}>
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" style={{ color: 'var(--text-muted)', stroke: 'var(--text-muted)' }} strokeWidth="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
                     </button>
                   </div>
 
                   <div className="space-y-4">
-                    <div className="rounded-xl p-4" style={{ backgroundColor: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
+                    <div className="rounded-xl p-4" style={{ backgroundColor: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)' }}>
                       <p className="text-zinc-500 text-xs font-heading uppercase tracking-widest mb-2">Abstract</p>
                       <p className="text-zinc-300 text-sm leading-relaxed font-body">{paper.summary}</p>
                     </div>
-                    <div className="rounded-xl p-4" style={{ backgroundColor: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
+                    <div className="rounded-xl p-4" style={{ backgroundColor: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)' }}>
                       <p className="text-zinc-500 text-xs font-heading uppercase tracking-widest mb-3">Keywords & Stack</p>
                       <div className="flex flex-wrap gap-1.5">{paper.tags.map(t => <Tag key={t} label={t} />)}</div>
                     </div>
@@ -186,7 +186,7 @@ export function PaperModal({ paper, onClose }: { paper: ResearchPaper | null; on
                 </div>
 
                 {/* ── Sticky CTA footer — always visible, never scrolls away ── */}
-                <div className="shrink-0 flex flex-col sm:flex-row gap-2 px-6 lg:px-8 pb-5 pt-3 border-t" style={{ borderColor: 'rgba(255,255,255,0.07)' }}>
+                <div className="shrink-0 flex flex-col sm:flex-row gap-2 px-6 lg:px-8 pb-5 pt-3 border-t" style={{ borderColor: 'var(--border-subtle)' }}>
                   {paper.status === 'upcoming' ? (
                     <button
                       disabled
@@ -207,7 +207,7 @@ export function PaperModal({ paper, onClose }: { paper: ResearchPaper | null; on
                       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="7" y1="17" x2="17" y2="7"/><polyline points="7 7 17 7 17 17"/></svg>
                     </a>
                   )}
-                  <button onClick={onClose} className="flex-1 py-3 rounded-xl font-heading font-semibold text-sm text-zinc-400 transition-all duration-200 hover:text-white" style={{ backgroundColor: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', touchAction: 'manipulation' }}>
+                  <button onClick={onClose} className="flex-1 py-3 rounded-xl font-heading font-semibold text-sm transition-all duration-200" style={{ backgroundColor: 'var(--bg-elevated)', border: '1px solid var(--border)', color: 'var(--text-secondary)', touchAction: 'manipulation' }}>
                     Close
                   </button>
                 </div>
@@ -249,7 +249,7 @@ function PatentCard({ patent, onClick, className }: { patent: Patent; onClick: (
         <h3 className="font-heading font-semibold text-white text-sm leading-snug group-hover:text-zinc-100 transition-colors">{patent.title}</h3>
         {patent.status !== 'upcoming' && (
           <div className="flex items-center gap-1.5 mt-1">
-            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.3)" strokeWidth="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" style={{ color: 'var(--text-muted)' }} strokeWidth="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
             <span className="text-zinc-600 text-[10px] font-body font-mono">{patent.registrationNumber}</span>
           </div>
         )}
@@ -296,7 +296,7 @@ export function PatentModal({ patent, onClose }: { patent: Patent | null; onClos
               transition={{ duration: 0.25 }}
               onClick={onClose}
               className="fixed inset-0 z-50"
-              style={{ backgroundColor: 'rgba(0,0,0,0.72)', backdropFilter: 'blur(8px)' }}
+              style={{ backgroundColor: 'var(--bg-overlay)', backdropFilter: 'blur(8px)' }}
             />
             <motion.div
               key="patent-modal"
@@ -309,9 +309,9 @@ export function PatentModal({ patent, onClose }: { patent: Patent | null; onClos
               {/* ── overflow:clip clips to border-radius without creating a scroll container ── */}
               <div
                 className="rounded-2xl relative flex flex-col"
-                style={{ backgroundColor: CARD_BG, border: '1px solid rgba(255,255,255,0.12)', maxHeight: 'min(88dvh, 88vh)', overflow: 'hidden' }}
+                style={{ backgroundColor: CARD_BG, border: '1px solid var(--border)', maxHeight: 'min(88dvh, 88vh)', overflow: 'hidden' }}
               >
-                <div className="absolute top-2.5 left-1/2 -translate-x-1/2 w-10 h-1 rounded-full shrink-0" style={{ backgroundColor: 'rgba(255,255,255,0.12)' }} />
+                <div className="absolute top-2.5 left-1/2 -translate-x-1/2 w-10 h-1 rounded-full shrink-0" style={{ backgroundColor: 'var(--border)' }} />
                 <div className="pointer-events-none absolute inset-0" style={{ background: 'radial-gradient(ellipse 60% 80% at 80% 100%, rgba(255,69,0,0.10) 0%, transparent 60%)' }} />
 
                 {/* ── Scrollable body — overflowY:scroll + touchAction:pan-y = reliable on all browsers/devices ── */}
@@ -329,22 +329,22 @@ export function PatentModal({ patent, onClose }: { patent: Patent | null; onClos
                       <h2 className="font-heading font-bold text-white text-xl lg:text-2xl tracking-tight leading-snug">{patent.title}</h2>
                       {patent.status !== 'upcoming' && (
                         <div className="flex items-center gap-1.5 mt-2">
-                          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.35)" strokeWidth="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" style={{ color: 'var(--text-muted)' }} strokeWidth="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
                           <span className="text-zinc-500 font-body text-xs font-mono">{patent.registrationNumber}</span>
                         </div>
                       )}
                     </div>
-                    <button onClick={onClose} className="shrink-0 w-9 h-9 rounded-full flex items-center justify-center transition-all duration-200 hover:scale-110" style={{ backgroundColor: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', touchAction: 'manipulation' }}>
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.7)" strokeWidth="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                    <button onClick={onClose} className="shrink-0 w-9 h-9 rounded-full flex items-center justify-center transition-all duration-200 hover:scale-110" style={{ backgroundColor: 'var(--bg-elevated)', border: '1px solid var(--border)', touchAction: 'manipulation' }}>
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" style={{ color: 'var(--text-muted)', stroke: 'var(--text-muted)' }} strokeWidth="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
                     </button>
                   </div>
 
                   <div className="space-y-4">
-                    <div className="rounded-xl p-4" style={{ backgroundColor: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
+                    <div className="rounded-xl p-4" style={{ backgroundColor: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)' }}>
                       <p className="text-zinc-500 text-xs font-heading uppercase tracking-widest mb-2">Description</p>
                       <p className="text-zinc-300 text-sm leading-relaxed font-body">{patent.summary}</p>
                     </div>
-                    <div className="rounded-xl p-4" style={{ backgroundColor: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
+                    <div className="rounded-xl p-4" style={{ backgroundColor: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)' }}>
                       <p className="text-zinc-500 text-xs font-heading uppercase tracking-widest mb-3">Technology Stack</p>
                       <div className="flex flex-wrap gap-1.5">{patent.tags.map(t => <Tag key={t} label={t} />)}</div>
                     </div>
@@ -352,7 +352,7 @@ export function PatentModal({ patent, onClose }: { patent: Patent | null; onClos
                 </div>
 
                 {/* ── Sticky CTA footer — always visible, never scrolls away ── */}
-                <div className="shrink-0 flex flex-col sm:flex-row gap-2 px-6 lg:px-8 pb-5 pt-3 border-t" style={{ borderColor: 'rgba(255,255,255,0.07)' }}>
+                <div className="shrink-0 flex flex-col sm:flex-row gap-2 px-6 lg:px-8 pb-5 pt-3 border-t" style={{ borderColor: 'var(--border-subtle)' }}>
                   {patent.status === 'upcoming' ? (
                     <button
                       disabled
@@ -374,7 +374,7 @@ export function PatentModal({ patent, onClose }: { patent: Patent | null; onClos
                       )}
                     </button>
                   )}
-                  <button onClick={onClose} className="flex-1 py-3 rounded-xl font-heading font-semibold text-sm text-zinc-400 transition-all duration-200 hover:text-white" style={{ backgroundColor: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', touchAction: 'manipulation' }}>
+                  <button onClick={onClose} className="flex-1 py-3 rounded-xl font-heading font-semibold text-sm transition-all duration-200" style={{ backgroundColor: 'var(--bg-elevated)', border: '1px solid var(--border)', color: 'var(--text-secondary)', touchAction: 'manipulation' }}>
                     Close
                   </button>
                 </div>
@@ -430,9 +430,9 @@ function ResearchPaperCarousel({ papers, onPaperClick }: { papers: ResearchPaper
       onClick={() => go(d)}
       aria-label={label}
       className="w-7 h-7 rounded-full flex items-center justify-center transition-all duration-200 hover:scale-110 active:scale-95"
-      style={{ backgroundColor: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', touchAction: 'manipulation' }}
+      style={{ backgroundColor: 'var(--bg-elevated)', border: '1px solid var(--border)', touchAction: 'manipulation' }}
     >
-      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.7)" strokeWidth="2.5">
+      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" style={{ color: 'var(--text-muted)', stroke: 'var(--text-muted)' }} strokeWidth="2.5">
         {d < 0
           ? <polyline points="18 15 12 9 6 15" />
           : <polyline points="6 9 12 15 18 9" />
@@ -493,7 +493,7 @@ function ResearchPaperCarousel({ papers, onPaperClick }: { papers: ResearchPaper
                   width:  i === index ? '8px' : '5px',
                   height: i === index ? '8px' : '5px',
                   borderRadius: '50%',
-                  backgroundColor: i === index ? ACCENT : 'rgba(255,255,255,0.25)',
+                  backgroundColor: i === index ? ACCENT : 'var(--border)',
                   transition: 'all 0.3s ease',
                   flexShrink: 0,
                 }}
@@ -560,9 +560,9 @@ function PatentCarousel({ patents, onPatentClick }: { patents: Patent[]; onPaten
             onClick={() => go(-1)}
             aria-label="Previous patent"
             className="shrink-0 w-7 h-7 rounded-full flex items-center justify-center transition-all duration-200 hover:scale-110 active:scale-95"
-            style={{ backgroundColor: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', touchAction: 'manipulation' }}
+            style={{ backgroundColor: 'var(--bg-elevated)', border: '1px solid var(--border)', touchAction: 'manipulation' }}
           >
-            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.7)" strokeWidth="2.5"><polyline points="15 18 9 12 15 6"/></svg>
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" style={{ color: 'var(--text-muted)', stroke: 'var(--text-muted)' }} strokeWidth="2.5"><polyline points="15 18 9 12 15 6"/></svg>
           </button>
         )}
 
@@ -590,9 +590,9 @@ function PatentCarousel({ patents, onPatentClick }: { patents: Patent[]; onPaten
             onClick={() => go(1)}
             aria-label="Next patent"
             className="shrink-0 w-7 h-7 rounded-full flex items-center justify-center transition-all duration-200 hover:scale-110 active:scale-95"
-            style={{ backgroundColor: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', touchAction: 'manipulation' }}
+            style={{ backgroundColor: 'var(--bg-elevated)', border: '1px solid var(--border)', touchAction: 'manipulation' }}
           >
-            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.7)" strokeWidth="2.5"><polyline points="9 18 15 12 9 6"/></svg>
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" style={{ color: 'var(--text-muted)', stroke: 'var(--text-muted)' }} strokeWidth="2.5"><polyline points="9 18 15 12 9 6"/></svg>
           </button>
         )}
       </div>
@@ -614,7 +614,7 @@ function PatentCarousel({ patents, onPatentClick }: { patents: Patent[]; onPaten
                   width:  i === index ? '8px' : '5px',
                   height: i === index ? '8px' : '5px',
                   borderRadius: '50%',
-                  backgroundColor: i === index ? ACCENT : 'rgba(255,255,255,0.25)',
+                  backgroundColor: i === index ? ACCENT : 'var(--border)',
                   transition: 'all 0.3s ease',
                   flexShrink: 0,
                 }}
@@ -666,7 +666,7 @@ function CertCard({ cert, index, onClick }: { cert: Certificate; index: number; 
         {/* No-image icon — only when imageUrl is absent */}
         {!cert.imageUrl && (
           <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 opacity-60">
-            <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.5)" strokeWidth="1.5">
+            <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" style={{ color: 'var(--text-muted)', stroke: 'var(--text-muted)' }} strokeWidth="1.5">
               <circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/>
               <path d="M15 8l3-3M18 11l-3-3"/>
             </svg>
@@ -716,16 +716,16 @@ function CertViewer({ cert, onClose }: { cert: Certificate | null; onClose: () =
             >
               <div
                 className="pointer-events-auto w-full max-w-2xl rounded-2xl overflow-hidden relative flex flex-col"
-                style={{ backgroundColor: CARD_BG, border: '1px solid rgba(255,255,255,0.14)', maxHeight: '90vh' }}
+                style={{ backgroundColor: CARD_BG, border: '1px solid var(--border)', maxHeight: '90vh' }}
               >
-                <div className="flex items-center justify-between px-5 py-4 border-b shrink-0" style={{ borderColor: 'rgba(255,255,255,0.07)' }}>
+                <div className="flex items-center justify-between px-5 py-4 border-b shrink-0" style={{ borderColor: 'var(--border-subtle)' }}>
                   <div>
                     <span className="inline-block px-2 py-0.5 rounded text-[10px] font-heading font-semibold tracking-widest uppercase mb-1" style={{ backgroundColor: 'rgba(255,69,0,0.12)', color: '#FF6A30', border: '1px solid rgba(255,69,0,0.2)' }}>Certificate</span>
                     <h3 className="font-heading font-semibold text-white text-sm leading-snug">{cert.title}</h3>
                     <p className="text-zinc-500 text-xs font-body">{cert.issuer} · {cert.date}</p>
                   </div>
-                  <button onClick={onClose} className="shrink-0 w-9 h-9 rounded-full flex items-center justify-center transition-all duration-200 hover:scale-110" style={{ backgroundColor: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)' }}>
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.7)" strokeWidth="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                  <button onClick={onClose} className="shrink-0 w-9 h-9 rounded-full flex items-center justify-center transition-all duration-200 hover:scale-110" style={{ backgroundColor: 'var(--bg-elevated)', border: '1px solid var(--border)' }}>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" style={{ color: 'var(--text-muted)', stroke: 'var(--text-muted)' }} strokeWidth="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
                   </button>
                 </div>
                 <div className="relative w-full flex items-center justify-center overflow-y-auto flex-1" style={{ background: 'rgba(0,0,0,0.3)', minHeight: '200px' }} onWheel={(e) => e.stopPropagation()}>
@@ -747,8 +747,8 @@ function CertViewer({ cert, onClose }: { cert: Certificate | null; onClose: () =
                   )}
                   <div className="pointer-events-none absolute inset-0" style={{ background: 'radial-gradient(ellipse 50% 40% at 50% 100%, rgba(255,69,0,0.08), transparent 60%)' }} />
                 </div>
-                <div className="px-5 py-3 border-t flex justify-end shrink-0" style={{ borderColor: 'rgba(255,255,255,0.07)' }}>
-                  <button onClick={onClose} className="px-5 py-2 rounded-lg font-heading font-semibold text-xs text-zinc-400 transition-all duration-200 hover:text-white" style={{ backgroundColor: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}>
+                <div className="px-5 py-3 border-t flex justify-end shrink-0" style={{ borderColor: 'var(--border-subtle)' }}>
+                  <button onClick={onClose} className="px-5 py-2 rounded-lg font-heading font-semibold text-xs text-zinc-400 transition-all duration-200 hover:text-white" style={{ backgroundColor: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)' }}>
                     Close
                   </button>
                 </div>
@@ -871,10 +871,10 @@ function CertificateCarousel({ certificates, onCertClick }: { certificates: Cert
           'absolute left-0 top-1/2 -translate-y-1/2 -translate-x-2 z-10 w-8 h-8 rounded-full flex items-center justify-center transition-all duration-200',
           canLeft ? 'opacity-100 hover:scale-110' : 'opacity-0 pointer-events-none'
         )}
-        style={{ backgroundColor: '#1c1a18', border: '1px solid rgba(255,255,255,0.12)', boxShadow: '0 4px 16px rgba(0,0,0,0.5)', touchAction: 'manipulation' }}
+        style={{ backgroundColor: '#1c1a18', border: '1px solid var(--border)', boxShadow: '0 4px 16px rgba(0,0,0,0.5)', touchAction: 'manipulation' }}
         aria-label="Scroll left"
       >
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.7)" strokeWidth="2.5"><polyline points="15 18 9 12 15 6"/></svg>
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" style={{ color: 'var(--text-muted)', stroke: 'var(--text-muted)' }} strokeWidth="2.5"><polyline points="15 18 9 12 15 6"/></svg>
       </button>
 
       {/* ── cert-scroll-hide class now applied so webkit rule above takes effect ── */}
@@ -902,10 +902,10 @@ function CertificateCarousel({ certificates, onCertClick }: { certificates: Cert
           'absolute right-0 top-1/2 -translate-y-1/2 translate-x-2 z-10 w-8 h-8 rounded-full flex items-center justify-center transition-all duration-200',
           canRight ? 'opacity-100 hover:scale-110' : 'opacity-0 pointer-events-none'
         )}
-        style={{ backgroundColor: '#1c1a18', border: '1px solid rgba(255,255,255,0.12)', boxShadow: '0 4px 16px rgba(0,0,0,0.5)', touchAction: 'manipulation' }}
+        style={{ backgroundColor: '#1c1a18', border: '1px solid var(--border)', boxShadow: '0 4px 16px rgba(0,0,0,0.5)', touchAction: 'manipulation' }}
         aria-label="Scroll right"
       >
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.7)" strokeWidth="2.5"><polyline points="9 18 15 12 9 6"/></svg>
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" style={{ color: 'var(--text-muted)', stroke: 'var(--text-muted)' }} strokeWidth="2.5"><polyline points="9 18 15 12 9 6"/></svg>
       </button>
 
     </div>
@@ -948,10 +948,10 @@ function LORViewer({ lor, onClose }: { lor: LOR | null; onClose: () => void }) {
             >
               <div
                 className="pointer-events-auto w-full max-w-2xl rounded-2xl overflow-hidden relative flex flex-col"
-                style={{ backgroundColor: CARD_BG, border: '1px solid rgba(255,255,255,0.14)', maxHeight: '90vh' }}
+                style={{ backgroundColor: CARD_BG, border: '1px solid var(--border)', maxHeight: '90vh' }}
               >
                 {/* Header */}
-                <div className="flex items-center justify-between px-5 py-4 border-b shrink-0" style={{ borderColor: 'rgba(255,255,255,0.07)' }}>
+                <div className="flex items-center justify-between px-5 py-4 border-b shrink-0" style={{ borderColor: 'var(--border-subtle)' }}>
                   <div className="min-w-0 flex-1">
                     <span className="inline-block px-2 py-0.5 rounded text-[10px] font-heading font-semibold tracking-widest uppercase mb-1" style={{ backgroundColor: 'rgba(255,69,0,0.12)', color: '#FF6A30', border: '1px solid rgba(255,69,0,0.2)' }}>
                       Letter of Recommendation
@@ -962,9 +962,9 @@ function LORViewer({ lor, onClose }: { lor: LOR | null; onClose: () => void }) {
                   <button
                     onClick={onClose}
                     className="shrink-0 ml-4 w-9 h-9 rounded-full flex items-center justify-center transition-all duration-200 hover:scale-110"
-                    style={{ backgroundColor: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)' }}
+                    style={{ backgroundColor: 'var(--bg-elevated)', border: '1px solid var(--border)' }}
                   >
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.7)" strokeWidth="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" style={{ color: 'var(--text-muted)', stroke: 'var(--text-muted)' }} strokeWidth="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
                   </button>
                 </div>
 
@@ -998,11 +998,11 @@ function LORViewer({ lor, onClose }: { lor: LOR | null; onClose: () => void }) {
                 </div>
 
                 {/* Footer */}
-                <div className="px-5 py-3 border-t flex justify-end shrink-0" style={{ borderColor: 'rgba(255,255,255,0.07)' }}>
+                <div className="px-5 py-3 border-t flex justify-end shrink-0" style={{ borderColor: 'var(--border-subtle)' }}>
                   <button
                     onClick={onClose}
                     className="px-5 py-2 rounded-lg font-heading font-semibold text-xs text-zinc-400 transition-all duration-200 hover:text-white"
-                    style={{ backgroundColor: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}
+                    style={{ backgroundColor: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)' }}
                   >
                     Close
                   </button>

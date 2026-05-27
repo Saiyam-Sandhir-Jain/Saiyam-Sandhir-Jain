@@ -57,11 +57,10 @@ function SkillCard({
         className
       )}
       style={{
-        backgroundColor: '#1c1a18',
-        border: '1px solid rgba(255,255,255,0.09)',
+        border: '1px solid var(--border)',
         background: isFull
-          ? 'linear-gradient(to right, #1b1917 45%, #231a13 100%)'
-          : '#1c1a18',
+          ? 'linear-gradient(to right, var(--bg-card) 45%, var(--bg-card) 100%)'
+          : 'var(--bg-card)',
       }}
     >
       {/* Corner warm glow */}
@@ -85,8 +84,8 @@ function SkillCard({
             key={tag}
             className="px-2 py-0.5 rounded-md text-zinc-400 text-xs font-body"
             style={{
-              backgroundColor: 'rgba(255,255,255,0.05)',
-              border: '1px solid rgba(255,255,255,0.08)',
+              backgroundColor: 'var(--bg-elevated)',
+              border: '1px solid var(--border)',
             }}
           >
             {tag}

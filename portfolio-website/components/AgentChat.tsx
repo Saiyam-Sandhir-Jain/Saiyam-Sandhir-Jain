@@ -134,8 +134,8 @@ export interface AgentChatProps {
 
 // ─── Design tokens ─────────────────────────────────────────────────────────────
 const ACCENT  = '#FF4500'
-const BG_CARD = '#1c1a18'
-const BORDER  = 'rgba(255,255,255,0.09)'
+const BG_CARD = 'var(--bg-card)'
+const BORDER  = 'var(--border)'
 
 // ─── Icons ────────────────────────────────────────────────────────────────────
 function DefaultSamsIcon({ size = 18 }: { size?: number }) {
@@ -200,7 +200,7 @@ function TypingDots() {
           key={i}
           className="w-1.5 h-1.5 rounded-full"
           style={{
-            backgroundColor: 'rgba(255,255,255,0.35)',
+            backgroundColor: 'var(--text-muted)',
             animation: `sams-dot 1.2s ease-in-out ${i * 0.2}s infinite`,
           }}
         />
@@ -223,7 +223,7 @@ function MessageBubble({ msg, samsAvatarUrl }: { msg: Message; samsAvatarUrl?: s
       )}
       <div className={cn('max-w-[85%] flex flex-col', isUser ? 'items-end' : 'items-start')}>
         {msg.loading ? (
-          <div className="px-3.5 py-2.5 rounded-2xl" style={{ backgroundColor: 'rgba(255,255,255,0.07)', border: `1px solid ${BORDER}` }}>
+          <div className="px-3.5 py-2.5 rounded-2xl" style={{ backgroundColor: 'var(--bg-elevated)', border: `1px solid ${BORDER}` }}>
             <TypingDots />
           </div>
         ) : (
@@ -232,7 +232,7 @@ function MessageBubble({ msg, samsAvatarUrl }: { msg: Message; samsAvatarUrl?: s
             style={
               isUser
                 ? { backgroundColor: ACCENT, color: '#fff', borderBottomRightRadius: 6, boxShadow: '0 4px 12px rgba(255,69,0,0.2)' }
-                : { backgroundColor: 'rgba(255,255,255,0.07)', color: '#e4e4e7', borderBottomLeftRadius: 6, border: `1px solid ${BORDER}` }
+                : { backgroundColor: 'var(--bg-elevated)', color: 'var(--text-primary)', borderBottomLeftRadius: 6, border: `1px solid ${BORDER}` }
             }
           >
             {msg.text}
@@ -415,7 +415,7 @@ export default function AgentChat({ open, onOpenChange, samsAvatarUrl }: AgentCh
 
       <div
         className="fixed inset-0 z-40 sm:hidden"
-        style={{ backgroundColor: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)' }}
+        style={{ backgroundColor: 'var(--bg-overlay)', backdropFilter: 'blur(4px)' }}
         onClick={() => onOpenChange(false)}
       />
 
@@ -442,10 +442,10 @@ export default function AgentChat({ open, onOpenChange, samsAvatarUrl }: AgentCh
             <SamsAvatar url={samsAvatarUrl} size={samsAvatarUrl ? 32 : 15} />
           </div>
           <div className="flex-1 min-w-0">
-            <div className="font-heading font-bold text-white text-sm leading-none">Sams</div>
+            <div className="font-heading font-bold text-sm leading-none" style={{ color: 'var(--text-primary)' }}>Sams</div>
             <div className="flex items-center gap-1.5 mt-0.5">
               <div className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />
-              <span className="text-zinc-500 text-[10px] font-body">
+              <span className="text-[10px] font-body" style={{ color: 'var(--text-muted)' }}>
                 AI · Saiyam's Portfolio Agent
                 {remaining !== null && <span className="ml-1 opacity-60">· {remaining} q left this week</span>}
               </span>
@@ -453,18 +453,18 @@ export default function AgentChat({ open, onOpenChange, samsAvatarUrl }: AgentCh
           </div>
           <div className="flex items-center gap-1">
             {messages.length > 0 && (
-              <button onClick={clearChat} className="p-1.5 rounded-lg text-zinc-600 hover:text-zinc-300 transition-colors" title="Clear chat">
+              <button onClick={clearChat} className="p-1.5 rounded-lg transition-colors" style={{ color: 'var(--text-muted)' }} title="Clear chat">
                 <TrashIcon />
               </button>
             )}
-            <button onClick={() => onOpenChange(false)} className="p-1.5 rounded-lg text-zinc-500 hover:text-white transition-colors" aria-label="Close chat">
+            <button onClick={() => onOpenChange(false)} className="p-1.5 rounded-lg transition-colors" style={{ color: 'var(--text-muted)' }} aria-label="Close chat">
               <ChevronDownIcon />
             </button>
           </div>
         </div>
 
         {/* Messages */}
-        <div className="flex-1 overflow-y-auto px-4 py-4 space-y-3 min-h-0" style={{ overscrollBehavior: 'contain' }}>
+        <div className="flex-1 overflow-y-auto px-4 py-4 space-y-3 min-h-0" style={{ overscrollBehavior: 'contain' }} onWheel={e => e.stopPropagation()}>
           {messages.length === 0 && (
             <div className="flex flex-col items-center justify-center h-full min-h-[200px] text-center px-4 gap-4">
               <div
@@ -474,8 +474,8 @@ export default function AgentChat({ open, onOpenChange, samsAvatarUrl }: AgentCh
                 <SamsAvatar url={samsAvatarUrl} size={samsAvatarUrl ? 56 : 26} />
               </div>
               <div>
-                <p className="font-heading font-bold text-white text-sm mb-1">Hey, I'm Sams!</p>
-                <p className="text-zinc-500 text-xs font-body leading-relaxed">
+                <p className="font-heading font-bold text-sm mb-1" style={{ color: 'var(--text-primary)' }}>Hey, I'm Sams!</p>
+                <p className="text-xs font-body leading-relaxed" style={{ color: 'var(--text-muted)' }}>
                   Ask me anything about Saiyam — his research, projects, skills, or background.
                 </p>
               </div>
@@ -486,7 +486,7 @@ export default function AgentChat({ open, onOpenChange, samsAvatarUrl }: AgentCh
                     onClick={() => send(q.prompt)}
                     disabled={busy || remaining === 0}
                     className="px-3 py-1.5 rounded-full text-xs font-heading font-semibold transition-all duration-150 hover:scale-105 hover:text-white disabled:opacity-40"
-                    style={{ backgroundColor: 'rgba(255,255,255,0.05)', border: `1px solid ${BORDER}`, color: 'rgba(212,212,216,1)' }}
+                    style={{ backgroundColor: 'var(--bg-elevated)', border: `1px solid ${BORDER}`, color: 'var(--text-secondary)' }}
                   >
                     {q.label}
                   </button>
@@ -502,7 +502,7 @@ export default function AgentChat({ open, onOpenChange, samsAvatarUrl }: AgentCh
           {rateDenied && (
             <div
               className="text-center text-xs font-body py-2 px-3 rounded-lg"
-              style={{ backgroundColor: 'rgba(255,69,0,0.1)', color: '#FF4500', border: `1px solid rgba(255,69,0,0.2)` }}
+              style={{ backgroundColor: 'rgba(255,69,0,0.1)', color: '#FF4500', border: '1px solid rgba(255,69,0,0.2)' }}
             >
               You've used all 10 questions for this week. Come back next Monday!
             </div>
@@ -515,7 +515,7 @@ export default function AgentChat({ open, onOpenChange, samsAvatarUrl }: AgentCh
         <div className="shrink-0 px-3 py-3 border-t" style={{ borderColor: BORDER }}>
           <div
             className="flex items-end gap-2 rounded-xl px-3 py-2"
-            style={{ backgroundColor: 'rgba(255,255,255,0.05)', border: `1px solid ${BORDER}` }}
+            style={{ backgroundColor: 'var(--bg-input)', border: `1px solid ${BORDER}` }}
           >
             <textarea
               ref={inputRef}
@@ -525,7 +525,7 @@ export default function AgentChat({ open, onOpenChange, samsAvatarUrl }: AgentCh
               placeholder={remaining === 0 ? 'Weekly limit reached — come back Monday' : 'Ask about research, projects, skills…'}
               rows={1}
               disabled={busy || remaining === 0}
-              className="flex-1 bg-transparent text-sm font-body text-white placeholder-zinc-600 outline-none resize-none leading-relaxed disabled:opacity-60"
+              className="flex-1 bg-transparent text-sm font-body outline-none resize-none leading-relaxed disabled:opacity-60" style={{ color: 'var(--text-primary)' }}
               style={{ maxHeight: '120px', minHeight: '22px', overflowY: 'auto' }}
               onInput={e => {
                 const t = e.target as HTMLTextAreaElement
@@ -537,7 +537,7 @@ export default function AgentChat({ open, onOpenChange, samsAvatarUrl }: AgentCh
               onClick={() => send(input)}
               disabled={!canSend}
               className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0 transition-all duration-150 hover:scale-110 disabled:opacity-40 disabled:cursor-not-allowed"
-              style={{ backgroundColor: canSend ? ACCENT : 'rgba(255,255,255,0.08)' }}
+              style={{ backgroundColor: canSend ? ACCENT : 'var(--bg-elevated)' }}
               aria-label="Send"
             >
               {busy ? (
@@ -549,7 +549,7 @@ export default function AgentChat({ open, onOpenChange, samsAvatarUrl }: AgentCh
               )}
             </button>
           </div>
-          <p className="text-zinc-700 text-[9px] font-body text-center mt-1.5">
+          <p className="text-[9px] font-body text-center mt-1.5" style={{ color: 'var(--text-muted)' }}>
             Enter to send · Shift+Enter for new line · 10 questions/week
           </p>
         </div>

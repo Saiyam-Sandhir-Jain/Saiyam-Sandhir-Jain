@@ -37,7 +37,7 @@ interface GHRepo {
 const GH_USER = 'Saiyam-Sandhir-Jain'
 
 const HEAT_COLORS: Record<number, string> = {
-  0: 'rgba(255,255,255,0.05)',
+  0: 'var(--bg-heatmap-empty)',
   1: '#4a1500',
   2: '#7a2400',
   3: '#b53600',
@@ -171,7 +171,7 @@ function ContributionHeatmap({ data }: { data: ContribData }) {
                 width: 10,
                 lineHeight: `${CELL}px`,
                 fontSize: 9,
-                color: 'rgba(255,255,255,0.2)',
+                color: 'var(--text-muted)',
                 textAlign: 'right',
               }}>
                 {i % 2 === 1 ? d : ''}
@@ -184,7 +184,7 @@ function ContributionHeatmap({ data }: { data: ContribData }) {
             {/* Month labels row */}
             <div style={{ display: 'flex', gap: GAP, marginBottom: 4, height: CELL }}>
               {weeks.map((_, wi) => (
-                <div key={wi} style={{ width: CELL, flexShrink: 0, fontSize: 9, color: 'rgba(255,255,255,0.3)', whiteSpace: 'nowrap' }}>
+                <div key={wi} style={{ width: CELL, flexShrink: 0, fontSize: 9, color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>
                   {monthMap[wi] || ''}
                 </div>
               ))}
@@ -219,11 +219,11 @@ function ContributionHeatmap({ data }: { data: ContribData }) {
 
       {/* Legend */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginTop: 10, justifyContent: 'flex-end' }}>
-        <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.25)' }}>Less</span>
+        <span style={{ fontSize: 9, color: 'var(--text-muted)' }}>Less</span>
         {[0,1,2,3,4].map(level => (
           <div key={level} style={{ width: CELL, height: CELL, borderRadius: 3, backgroundColor: HEAT_COLORS[level] }} />
         ))}
-        <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.25)' }}>More</span>
+        <span style={{ fontSize: 9, color: 'var(--text-muted)' }}>More</span>
       </div>
     </div>
   )
@@ -235,7 +235,7 @@ function StatBadge({ icon, value, label }: { icon: React.ReactNode; value: strin
   return (
     <div
       className="flex items-center gap-2.5 px-4 py-3 rounded-xl flex-1 min-w-0"
-      style={{ backgroundColor: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.06)' }}
+      style={{ backgroundColor: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)' }}
     >
       <div className="shrink-0 text-[#FF4500]">{icon}</div>
       <div className="min-w-0">
@@ -285,7 +285,7 @@ function RepoTile({ repo }: { repo: GHRepo }) {
       rel="noopener noreferrer"
       onMouseEnter={handleMouseEnter}
       className="bento-item group block rounded-xl p-4 transition-[border-color,box-shadow,opacity] duration-300 ease-out cursor-pointer hover:shadow-xl"
-      style={{ backgroundColor: '#1c1a18', border: '1px solid rgba(255,255,255,0.09)', transformOrigin: 'center', willChange: 'transform' }}
+      style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)', transformOrigin: 'center', willChange: 'transform' }}
     >
       {/* Header */}
       <div className="flex items-start justify-between gap-2 mb-2">
@@ -332,7 +332,7 @@ function RepoTile({ repo }: { repo: GHRepo }) {
         <div className="flex items-center gap-1 ml-auto">
           {/* Stars */}
           <div className="flex items-center gap-1">
-            <svg width="11" height="11" viewBox="0 0 24 24" fill="rgba(255,255,255,0.35)" stroke="none">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor" stroke="none" style={{ color: 'var(--text-muted)' }}>
               <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
             </svg>
             <span className="text-zinc-500 text-[10px] font-heading">{repo.stargazers_count}</span>
@@ -341,7 +341,7 @@ function RepoTile({ repo }: { repo: GHRepo }) {
           {/* Forks */}
           {repo.forks_count > 0 && (
             <div className="flex items-center gap-1 ml-2">
-              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.35)" strokeWidth="2">
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" style={{ color: 'var(--text-muted)' }} strokeWidth="2">
                 <circle cx="12" cy="18" r="3"/><circle cx="6" cy="6" r="3"/><circle cx="18" cy="6" r="3"/>
                 <path d="M6 9v2a3 3 0 0 0 3 3h6a3 3 0 0 0 3-3V9"/>
                 <line x1="12" y1="12" x2="12" y2="15"/>
@@ -361,7 +361,7 @@ function Skeleton({ className }: { className?: string }) {
   return (
     <div
       className={cn('rounded animate-pulse', className)}
-      style={{ backgroundColor: 'rgba(255,255,255,0.06)' }}
+      style={{ backgroundColor: 'var(--border-subtle)' }}
     />
   )
 }
@@ -370,7 +370,7 @@ function HeatmapSkeleton() {
   return (
     <div
       className="bento-item rounded-xl p-6"
-      style={{ backgroundColor: '#1c1a18', border: '1px solid rgba(255,255,255,0.09)' }}
+      style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)' }}
     >
       <Skeleton className="h-5 w-48 mb-4" />
       <Skeleton className="h-28 w-full mb-4" />
@@ -388,7 +388,7 @@ function RepoGridSkeleton() {
         <div
           key={i}
           className="rounded-xl p-4"
-          style={{ backgroundColor: '#1c1a18', border: '1px solid rgba(255,255,255,0.09)' }}
+          style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)' }}
         >
           <div className="flex justify-between mb-2">
             <Skeleton className="h-4 w-32" />
@@ -546,7 +546,7 @@ export function GitHubProjects() {
     return (
       <div
         className="bento-item rounded-xl p-8 flex flex-col items-center justify-center text-center"
-        style={{ backgroundColor: '#1c1a18', border: '1px solid rgba(255,255,255,0.09)' }}
+        style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)' }}
       >
         <div className="text-2xl mb-2">⚠️</div>
         <p className="text-zinc-400 text-sm font-heading">{error}</p>
@@ -568,7 +568,7 @@ export function GitHubProjects() {
       {/* ── GitHub Stats Card (heatmap + stats bar) ── */}
       <div
         className="bento-item rounded-xl p-6 relative overflow-hidden animate-bento-in"
-        style={{ backgroundColor: '#1c1a18', border: '1px solid rgba(255,255,255,0.09)' }}
+        style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)' }}
       >
         {/* Subtle orange glow bottom-right */}
         <div className="pointer-events-none absolute inset-0" style={{
@@ -582,8 +582,10 @@ export function GitHubProjects() {
             href={`https://github.com/${GH_USER}`}
             target="_blank"
             rel="noopener noreferrer"
-            className="flex items-center gap-2 px-3 py-1.5 rounded-lg font-heading font-semibold text-xs text-zinc-400 hover:text-[#FF4500] transition-colors duration-200 border ml-auto"
-            style={{ borderColor: 'rgba(255,255,255,0.08)', backgroundColor: 'rgba(255,255,255,0.03)' }}
+            className="flex items-center gap-2 px-3 py-1.5 rounded-lg font-heading font-semibold text-xs transition-colors duration-200 border ml-auto"
+            style={{ borderColor: 'var(--border)', backgroundColor: 'var(--bg-elevated)', color: 'var(--text-muted)' }}
+            onMouseEnter={e => { (e.currentTarget as HTMLAnchorElement).style.color = '#FF4500' }}
+            onMouseLeave={e => { (e.currentTarget as HTMLAnchorElement).style.color = 'var(--text-muted)' }}
           >
             <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor">
               <path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"/>
@@ -641,7 +643,7 @@ export function GitHubProjects() {
       <div className="flex items-center gap-3 px-1 pt-2">
         <h2 className="font-heading font-bold text-white text-base tracking-tight">Repositories</h2>
         <span className="text-zinc-600 text-xs font-heading">{repos.length} public</span>
-        <div className="flex-1 h-px" style={{ backgroundColor: 'rgba(255,255,255,0.06)' }} />
+        <div className="flex-1 h-px" style={{ backgroundColor: 'var(--border-subtle)' }} />
       </div>
 
       {/* ── Repo tiles — two independent columns ── */}

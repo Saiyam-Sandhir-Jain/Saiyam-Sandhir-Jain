@@ -11,17 +11,21 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
+      {/* Anti-flash script: runs before paint to apply saved dark-mode preference */}
+      <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `try{var t=localStorage.getItem('theme');if(t==='light')document.documentElement.setAttribute('data-theme','light');}catch(e){}`,
+          }}
+        />
+      </head>
       <body
         className="antialiased"
-        style={{
-          backgroundColor: '#161616',
-          color: '#fafafa',
-          fontFamily: 'var(--font-dm-sans, DM Sans, sans-serif)',
-        }}
+        style={{ fontFamily: 'var(--font-dm-sans, DM Sans, sans-serif)' }}
       >
         {/*
           SmoothScrollProvider wraps the app for Lenis smooth scrolling.
-          NoiseOverlay removed — it was unused and not exported anywhere.
+          Background/color now handled by CSS custom properties in globals.css.
         */}
         <SmoothScrollProvider>
           {children}
