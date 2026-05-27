@@ -14,7 +14,7 @@
  * Sams has context for follow-up messages like "ok", "hmm", "tell me more".
  */
 
-import { useState, useRef, useEffect, useCallback } from 'react'
+import React, { useState, useRef, useEffect, useCallback } from 'react'
 import { cn } from '@/lib/utils'
 
 // ─── Browser fingerprint ──────────────────────────────────────────────────────
@@ -209,6 +209,34 @@ function TypingDots() {
   )
 }
 
+/** Renders a small subset of Markdown: **bold**, [text](url), newlines. */
+function renderMarkdown(text: string): React.ReactNode[] {
+  const lines = text.split('\n')
+  return lines.flatMap((line, li) => {
+    // tokenise each line by **bold** and [label](url)
+    const tokens: React.ReactNode[] = []
+    const re = /\*\*(.+?)\*\*|\[([^\]]+)\]\((https?:\/\/[^)]+)\)/g
+    let last = 0, m: RegExpExecArray | null
+    while ((m = re.exec(line)) !== null) {
+      if (m.index > last) tokens.push(line.slice(last, m.index))
+      if (m[1] !== undefined) {
+        tokens.push(<strong key={`b-${li}-${m.index}`}>{m[1]}</strong>)
+      } else {
+        tokens.push(
+          <a key={`a-${li}-${m.index}`} href={m[3]} target="_blank" rel="noopener noreferrer"
+            style={{ color: ACCENT, textDecoration: 'underline' }}>
+            {m[2]}
+          </a>
+        )
+      }
+      last = re.lastIndex
+    }
+    if (last < line.length) tokens.push(line.slice(last))
+    if (li < lines.length - 1) tokens.push(<br key={`br-${li}`} />)
+    return tokens
+  })
+}
+
 function MessageBubble({ msg, samsAvatarUrl }: { msg: Message; samsAvatarUrl?: string | null }) {
   const isUser = msg.role === 'user'
   return (
@@ -235,7 +263,7 @@ function MessageBubble({ msg, samsAvatarUrl }: { msg: Message; samsAvatarUrl?: s
                 : { backgroundColor: 'var(--bg-elevated)', color: 'var(--text-primary)', borderBottomLeftRadius: 6, border: `1px solid ${BORDER}` }
             }
           >
-            {msg.text}
+            {isUser ? msg.text : renderMarkdown(msg.text)}
           </div>
         )}
       </div>
