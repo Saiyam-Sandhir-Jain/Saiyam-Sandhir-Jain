@@ -5,13 +5,13 @@
  * Sams — Saiyam's RAG-powered portfolio AI agent.
  *
  * Rate limiting strategy (two layers):
- *   Client — localStorage gives instant UX feedback (no spinner before rejection)
- *   Server — HttpOnly cookie (primary) + browser fingerprint (fallback) stored
- *            in Supabase. Immune to localStorage clearing, incognito, and VPN.
+ * Client — localStorage gives instant UX feedback (no spinner before rejection)
+ * Server — HttpOnly cookie (primary) + browser fingerprint (fallback) stored
+ * in Supabase. Immune to localStorage clearing, incognito, and VPN.
  *
  * Conversation history:
- *   Every completed exchange is kept in state and forwarded to the backend so
- *   Sams has context for follow-up messages like "ok", "hmm", "tell me more".
+ * Every completed exchange is kept in state and forwarded to the backend so
+ * Sams has context for follow-up messages like "ok", "hmm", "tell me more".
  */
 
 import { useState, useRef, useEffect, useCallback } from 'react'
@@ -258,7 +258,7 @@ const QUICK_PROMPTS = [
  * - Excludes loading placeholders and empty messages.
  * - Maps 'assistant' → 'model' (Gemini's role name).
  * - Caps at the last 16 messages (8 exchanges) — the backend caps at 8 too,
- *   but trimming here keeps the request payload small.
+ * but trimming here keeps the request payload small.
  */
 function buildHistory(messages: Message[]): HistoryTurn[] {
   return messages
@@ -525,8 +525,8 @@ export default function AgentChat({ open, onOpenChange, samsAvatarUrl }: AgentCh
               placeholder={remaining === 0 ? 'Weekly limit reached — come back Monday' : 'Ask about research, projects, skills…'}
               rows={1}
               disabled={busy || remaining === 0}
-              className="flex-1 bg-transparent text-sm font-body outline-none resize-none leading-relaxed disabled:opacity-60" style={{ color: 'var(--text-primary)' }}
-              style={{ maxHeight: '120px', minHeight: '22px', overflowY: 'auto' }}
+              className="flex-1 bg-transparent text-sm font-body outline-none resize-none leading-relaxed disabled:opacity-60"
+              style={{ color: 'var(--text-primary)', maxHeight: '120px', minHeight: '22px', overflowY: 'auto' }}
               onInput={e => {
                 const t = e.target as HTMLTextAreaElement
                 t.style.height = 'auto'
