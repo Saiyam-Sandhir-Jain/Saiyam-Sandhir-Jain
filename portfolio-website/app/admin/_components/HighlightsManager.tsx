@@ -6,6 +6,8 @@ import {
   updateHighlightText,
   uploadHighlightImage,
   deleteHighlightImage,
+  uploadPhoneImage,
+  deletePhoneImage,
   type HighlightSlot,
   type ModalLink,
 } from '../_actions/highlights'
@@ -21,6 +23,7 @@ interface HighlightData {
   heading:            string
   subheading:         string
   image_url:          string | null
+  phone_image_url:    string | null
   modal_heading:      string
   modal_subheading:   string
   modal_abstract:     string
@@ -515,9 +518,11 @@ function ProjectTileEditor({ data }: { data: HighlightData }) {
   const [modalLinks,    setModalLinks]     = useState<ModalLink[]>(data.modal_links)
   const [tagInput,      setTagInput]       = useState('')
   const [imageUrl,      setImageUrl]       = useState(data.image_url ?? '')
+  const [phoneImageUrl, setPhoneImageUrl]  = useState(data.phone_image_url ?? '')
   const [status,        setStatus]         = useState('')
   const [loading,       setLoading]        = useState(false)
-  const imageInputRef = useRef<HTMLInputElement>(null)
+  const imageInputRef      = useRef<HTMLInputElement>(null)
+  const phoneImageInputRef = useRef<HTMLInputElement>(null)
 
   const wrap = async (fn: () => Promise<void>) => {
     setLoading(true); setStatus('')
@@ -541,13 +546,29 @@ function ProjectTileEditor({ data }: { data: HighlightData }) {
     fd.append('image', file)
     const res = await uploadHighlightImage(data.slot, fd)
     setImageUrl(res.url!)
-    setStatus('✓ Image uploaded')
+    setStatus('✓ Screenshot uploaded')
   })
 
   const handleImageDelete = () => wrap(async () => {
     await deleteHighlightImage(data.slot)
     setImageUrl('')
-    setStatus('✓ Image deleted')
+    setStatus('✓ Screenshot deleted')
+  })
+
+  const handlePhoneImageUpload = () => wrap(async () => {
+    const file = phoneImageInputRef.current?.files?.[0]
+    if (!file) return
+    const fd = new FormData()
+    fd.append('phone_image', file)
+    const res = await uploadPhoneImage(fd)
+    setPhoneImageUrl(res.url!)
+    setStatus('✓ Phone image uploaded')
+  })
+
+  const handlePhoneImageDelete = () => wrap(async () => {
+    await deletePhoneImage()
+    setPhoneImageUrl('')
+    setStatus('✓ Phone image deleted')
   })
 
   const addTag = () => {
@@ -583,12 +604,58 @@ function ProjectTileEditor({ data }: { data: HighlightData }) {
             <input className={inputCls} value={subheading} onChange={e => setSubheading(e.target.value)} />
           </div>
         </div>
+
+        {/* ── Phone image (replaces SVG mockup) ── */}
+        <div className="border border-zinc-700 rounded-lg p-3 space-y-2">
+          <div>
+            <label className={labelCls} style={{ marginBottom: 0 }}>
+              Phone Image —&nbsp;
+              <span className="text-zinc-500 normal-case font-normal">transparent PNG replaces the built-in SVG mockup</span>
+            </label>
+            <p className="text-[10px] text-zinc-600 mt-0.5 mb-2">
+              Upload a PNG/WebP with a transparent background showing the full phone with your app inside.
+              The hover scale animation still applies. When set, the SVG frame and screenshot below are ignored.
+            </p>
+          </div>
+          {phoneImageUrl ? (
+            <div className="flex items-center gap-3 mb-2">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={phoneImageUrl}
+                alt="Phone mockup preview"
+                className="rounded border border-zinc-700"
+                style={{ height: '80px', width: 'auto', objectFit: 'contain', background: 'repeating-conic-gradient(#333 0% 25%, #222 0% 50%) 0 0 / 12px 12px' }}
+              />
+              <div className="flex flex-col gap-1.5">
+                <span className="text-xs text-green-400">✓ Custom phone image set</span>
+                <button onClick={handlePhoneImageDelete} disabled={loading}
+                  className="px-2 py-1 text-xs rounded border border-red-700 text-red-400 hover:bg-red-900/30 w-fit">
+                  Delete (revert to SVG)
+                </button>
+              </div>
+            </div>
+          ) : (
+            <p className="text-xs text-zinc-600 mb-2">No phone image — using built-in SVG mockup</p>
+          )}
+          <div className="flex gap-2">
+            <input ref={phoneImageInputRef} type="file" accept="image/png,image/webp" className="text-xs text-zinc-400" />
+            <button onClick={handlePhoneImageUpload} disabled={loading}
+              className="px-3 py-1.5 text-xs rounded bg-zinc-700 hover:bg-zinc-600 text-white shrink-0">
+              Upload Phone Image
+            </button>
+          </div>
+        </div>
+
+        {/* ── App screenshot (fallback, used inside SVG mockup only) ── */}
         <div>
-          <label className={labelCls}>App Screenshot (shown inside phone mockup)</label>
+          <label className={labelCls}>
+            App Screenshot&nbsp;
+            <span className="text-zinc-600 normal-case font-normal">(used inside SVG mockup only — ignored when phone image above is set)</span>
+          </label>
           {imageUrl && (
             <div className="flex items-center gap-2 mb-2">
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={imageUrl} alt="Tile" className="w-16 h-16 object-cover rounded border border-zinc-700" />
+              <img src={imageUrl} alt="Screenshot" className="w-16 h-16 object-cover rounded border border-zinc-700" />
               <button onClick={handleImageDelete} disabled={loading}
                 className="px-2 py-1 text-xs rounded border border-red-700 text-red-400 hover:bg-red-900/30">
                 Delete
@@ -599,7 +666,7 @@ function ProjectTileEditor({ data }: { data: HighlightData }) {
             <input ref={imageInputRef} type="file" accept="image/*" className="text-xs text-zinc-400" />
             <button onClick={handleImageUpload} disabled={loading}
               className="px-3 py-1.5 text-xs rounded bg-zinc-700 hover:bg-zinc-600 text-white shrink-0">
-              Upload
+              Upload Screenshot
             </button>
           </div>
         </div>
@@ -611,7 +678,6 @@ function ProjectTileEditor({ data }: { data: HighlightData }) {
         <legend className="text-xs font-semibold text-zinc-300 uppercase tracking-wider mb-2">
           Modal content (shown when tile is clicked)
         </legend>
-
         <div className="grid grid-cols-2 gap-3">
           <div>
             <label className={labelCls}>Modal Heading</label>
@@ -622,12 +688,10 @@ function ProjectTileEditor({ data }: { data: HighlightData }) {
             <input className={inputCls} value={modalSub} onChange={e => setModalSub(e.target.value)} />
           </div>
         </div>
-
         <div>
           <label className={labelCls}>Abstract / Description</label>
           <textarea className={inputCls} rows={4} value={modalAbstract} onChange={e => setModalAbstract(e.target.value)} />
         </div>
-
         <div>
           <label className={labelCls}>Keywords / Tags</label>
           <div className="flex flex-wrap gap-1.5 mb-2 min-h-6">
@@ -646,25 +710,18 @@ function ProjectTileEditor({ data }: { data: HighlightData }) {
             <button onClick={addTag} className="px-3 py-1.5 text-xs rounded bg-zinc-700 hover:bg-zinc-600 text-white shrink-0">Add</button>
           </div>
         </div>
-
         <div>
           <label className={labelCls}>External Links (GitHub, paper URL, etc.)</label>
           <div className="space-y-2 mb-2">
             {modalLinks.map((link, i) => (
               <div key={i} className="flex gap-2">
-                <input className={inputCls} value={link.label}
-                  onChange={e => updateLink(i, 'label', e.target.value)}
-                  placeholder="Label (e.g. GitHub)" />
-                <input className={inputCls} value={link.url}
-                  onChange={e => updateLink(i, 'url', e.target.value)}
-                  placeholder="URL" />
-                <button onClick={() => removeLink(i)}
-                  className="px-2 py-1 text-xs rounded border border-red-700 text-red-400 hover:bg-red-900/30 shrink-0">×</button>
+                <input className={inputCls} value={link.label} onChange={e => updateLink(i, 'label', e.target.value)} placeholder="Label (e.g. GitHub)" />
+                <input className={inputCls} value={link.url}   onChange={e => updateLink(i, 'url',   e.target.value)} placeholder="URL" />
+                <button onClick={() => removeLink(i)} className="px-2 py-1 text-xs rounded border border-red-700 text-red-400 hover:bg-red-900/30 shrink-0">×</button>
               </div>
             ))}
           </div>
-          <button onClick={addLink}
-            className="text-xs text-zinc-400 hover:text-white border border-dashed border-zinc-700 rounded px-3 py-1 hover:border-zinc-500 transition-colors">
+          <button onClick={addLink} className="text-xs text-zinc-400 hover:text-white border border-dashed border-zinc-700 rounded px-3 py-1 hover:border-zinc-500 transition-colors">
             + Add Link
           </button>
         </div>

@@ -15,23 +15,18 @@ const CARD_BORDER_H = 'rgba(255,69,0,0.25)'
 // ─── Status badge colours ──────────────────────────────────────────────────
 function statusConfig(status: string) {
   switch (status) {
-    case 'published': case 'granted':
-      return { label: status === 'granted' ? 'Granted' : 'Published', bg: 'rgba(34,197,94,0.1)', color: '#4ade80', border: 'rgba(34,197,94,0.2)' }
-    case 'filed':
-      return { label: 'Filed', bg: 'rgba(234,179,8,0.1)', color: '#fbbf24', border: 'rgba(234,179,8,0.2)' }
+    case 'published': return { label: 'Published', cls: 'status-badge-published' }
+    case 'granted':   return { label: 'Granted',   cls: 'status-badge-granted' }
+    case 'filed':     return { label: 'Filed',      cls: 'status-badge-filed' }
     case 'upcoming':
-    default:
-      return { label: 'Upcoming', bg: 'rgba(139,92,246,0.1)', color: '#a78bfa', border: 'rgba(139,92,246,0.2)' }
+    default:          return { label: 'Upcoming',   cls: 'status-badge-upcoming' }
   }
 }
 
 function StatusBadge({ status }: { status: string }) {
   const cfg = statusConfig(status)
   return (
-    <span
-      className="inline-block px-2 py-0.5 rounded text-[10px] font-heading font-semibold tracking-widest uppercase"
-      style={{ backgroundColor: cfg.bg, color: cfg.color, border: `1px solid ${cfg.border}` }}
-    >
+    <span className={`status-badge ${cfg.cls}`}>
       {cfg.label}
     </span>
   )

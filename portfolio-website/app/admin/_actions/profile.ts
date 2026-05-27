@@ -146,13 +146,14 @@ export async function uploadResume(formData: FormData) {
   if (uploadError) throw new Error(uploadError.message)
 
   const { data: { publicUrl } } = db.storage.from('resumes').getPublicUrl('resume.pdf')
+  const bustedUrl = `${publicUrl}?t=${Date.now()}`
 
   const { error: dbError } = await db
     .from('about_profile')
-    .update({ resume_url: publicUrl, updated_at: new Date().toISOString() })
+    .update({ resume_url: bustedUrl, updated_at: new Date().toISOString() })
     .neq('id', '00000000-0000-0000-0000-000000000000')
   if (dbError) throw new Error(dbError.message)
 
   revalidatePath('/')
-  return { success: true, url: publicUrl }
+  return { success: true, url: bustedUrl }
 }

@@ -23,17 +23,28 @@ function ArrowIcon({ className }: { className?: string }) {
 }
 
 // ─── Realistic iPhone Mockup ──────────────────────────────────────────────
-// SVG handles all clipping via clipPath. Camera/notch drawn AFTER image → always on top.
-// No separate Next.js Image overlay so the notch is never obscured.
-function RealisticPhone({ imageUrl }: { imageUrl?: string }) {
+// If phoneImageUrl (transparent-bg PNG) is provided it replaces the SVG entirely.
+// The hover scale lives on the wrapper so both paths share the same animation.
+function RealisticPhone({ imageUrl, phoneImageUrl }: { imageUrl?: string; phoneImageUrl?: string }) {
   return (
     <div
       className="relative transition-transform duration-500 ease-out group-hover:scale-[1.03]"
       style={{
         width: '200px',
-        filter: 'drop-shadow(0 8px 32px rgba(0,0,0,0.65)) drop-shadow(0 2px 8px rgba(0,0,0,0.5))',
+        filter: phoneImageUrl
+          ? 'drop-shadow(0 6px 18px rgba(0,0,0,0.35)) drop-shadow(0 2px 5px rgba(0,0,0,0.22))'
+          : 'drop-shadow(0 6px 18px rgba(0,0,0,0.45)) drop-shadow(0 2px 5px rgba(0,0,0,0.28))',
       }}
     >
+      {phoneImageUrl ? (
+        // Custom phone image (transparent PNG) — replaces the SVG mockup
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={phoneImageUrl}
+          alt="Phone mockup"
+          style={{ width: '200px', height: 'auto', display: 'block' }}
+        />
+      ) : (
       <svg viewBox="0 0 200 420" width="200" xmlns="http://www.w3.org/2000/svg" style={{ display: 'block' }}>
         <defs>
           {/* Screen clip — rx=26 matches real phone screen corner radius */}
@@ -97,6 +108,7 @@ function RealisticPhone({ imageUrl }: { imageUrl?: string }) {
         {/* ── Screen edge gloss ── */}
         <rect x="14" y="12" width="172" height="396" rx="26" fill="none" stroke="rgba(255,255,255,0.05)" strokeWidth="1"/>
       </svg>
+      )}
     </div>
   )
 }
@@ -187,13 +199,13 @@ export function TallProject({ project, onClick }: { project: Project; onClick?: 
           className="lg:hidden absolute left-1/2"
           style={{ top: '10px', transform: 'translateX(-50%)' }}
         >
-          <RealisticPhone imageUrl={project.imageUrl || undefined} />
+          <RealisticPhone imageUrl={project.imageUrl || undefined} phoneImageUrl={project.phoneImageUrl || undefined} />
         </div>
         <div
           className="hidden lg:block absolute left-1/2 top-1/2"
           style={{ transform: 'translateX(-50%) translateY(-53%)' }}
         >
-          <RealisticPhone imageUrl={project.imageUrl || undefined} />
+          <RealisticPhone imageUrl={project.imageUrl || undefined} phoneImageUrl={project.phoneImageUrl || undefined} />
         </div>
       </div>
 

@@ -55,6 +55,7 @@ export interface Project {
   subtype?: 'project' | 'research' | 'patent'
   url: string
   imageUrl: string
+  phoneImageUrl?: string
   backImageUrl?: string
   accent?: string
   label?: string

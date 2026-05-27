@@ -11,7 +11,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       <head>
         <script
           dangerouslySetInnerHTML={{
-            __html: `document.documentElement.removeAttribute('data-theme');`,
+            __html: `document.documentElement.setAttribute('data-theme','dark');`,
           }}
         />
       </head>

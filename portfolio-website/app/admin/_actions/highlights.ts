@@ -114,7 +114,65 @@ export async function uploadHighlightImage(
   return { success: true, url: bustedUrl }
 }
 
-// ─── Delete a highlight tile image ───────────────────────────────────────────
+// ─── Upload the phone mockup image for the project tile ───────────────────────
+export async function uploadPhoneImage(formData: FormData) {
+  const db   = await requireAdmin()
+  const file = formData.get('phone_image') as File
+
+  if (!file || file.size === 0)   throw new Error('No file provided')
+  if (file.size > MAX_IMAGE_BYTES) throw new Error('Image must be under 5 MB')
+
+  const ext = file.name.split('.').pop()?.toLowerCase() ?? ''
+  if (!ALLOWED_IMAGE_EXT.has(ext))        throw new Error('Only JPEG, PNG, WebP, or GIF images are allowed')
+  if (!ALLOWED_IMAGE_MIME.has(file.type)) throw new Error('Invalid image content type')
+
+  const safeExt = MIME_TO_EXT[file.type] ?? 'png'
+  const path    = `project_phone.${safeExt}`
+  const bytes   = await file.arrayBuffer()
+  const buffer  = new Uint8Array(bytes)
+
+  const { error: uploadError } = await db.storage
+    .from('highlights')
+    .upload(path, buffer, { contentType: file.type, upsert: true })
+
+  if (uploadError) throw new Error(uploadError.message)
+
+  const { data: { publicUrl } } = db.storage.from('highlights').getPublicUrl(path)
+  const bustedUrl = `${publicUrl}?t=${Date.now()}`
+
+  const { error: dbError } = await db
+    .from('highlights')
+    .update({ phone_image_url: bustedUrl, updated_at: new Date().toISOString() })
+    .eq('slot', 'project')
+
+  if (dbError) throw new Error(dbError.message)
+  revalidatePath('/')
+  return { success: true, url: bustedUrl }
+}
+
+// ─── Delete the phone mockup image for the project tile ───────────────────────
+export async function deletePhoneImage() {
+  const db = await requireAdmin()
+
+  const { data } = await db
+    .from('highlights')
+    .select('phone_image_url')
+    .eq('slot', 'project')
+    .single()
+
+  if (data?.phone_image_url) {
+    const fileName = data.phone_image_url.split('/').pop()?.split('?')[0]
+    if (fileName) await db.storage.from('highlights').remove([fileName])
+  }
+
+  await db
+    .from('highlights')
+    .update({ phone_image_url: null, updated_at: new Date().toISOString() })
+    .eq('slot', 'project')
+
+  revalidatePath('/')
+  return { success: true }
+}
 export async function deleteHighlightImage(slot: HighlightSlot) {
   const db = await requireAdmin()
 

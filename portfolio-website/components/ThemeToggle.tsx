@@ -6,21 +6,21 @@ export function ThemeToggle({ className }: { className?: string }) {
   const [dark, setDark] = useState<boolean | undefined>(undefined)
 
   useEffect(() => {
-    const isLight = document.documentElement.getAttribute('data-theme') === 'light'
-    setDark(!isLight)
+    const isDark = document.documentElement.getAttribute('data-theme') === 'dark'
+    setDark(isDark)
   }, [])
 
   function toggle() {
     const next = !dark
     setDark(next)
     if (next) {
-      // going dark — remove the light attribute; :root (dark) takes over
+      // going dark
+      document.documentElement.setAttribute('data-theme', 'dark')
+      try { localStorage.setItem('theme', 'dark') } catch {}
+    } else {
+      // going light — remove dark attribute; :root (light) takes over
       document.documentElement.removeAttribute('data-theme')
       try { localStorage.removeItem('theme') } catch {}
-    } else {
-      // going light
-      document.documentElement.setAttribute('data-theme', 'light')
-      try { localStorage.setItem('theme', 'light') } catch {}
     }
   }
 
