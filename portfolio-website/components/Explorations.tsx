@@ -639,9 +639,10 @@ function CertCard({ cert, index, onClick }: { cert: Certificate; index: number; 
   return (
     <button
       onClick={() => onClick(cert)}
-      className="group shrink-0 rounded-xl overflow-hidden transition-all duration-300 cursor-pointer relative"
+      className="group shrink-0 rounded-xl overflow-hidden transition-all duration-300 cursor-pointer relative flex flex-col"
       style={{
         width: 'min(260px, 72vw)',
+        height: '256px',
         backgroundColor: CARD_BG,
         border: `1px solid ${CARD_BORDER}`,
         scrollSnapAlign: 'start',
@@ -650,7 +651,7 @@ function CertCard({ cert, index, onClick }: { cert: Certificate; index: number; 
       <div className="absolute inset-0 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" style={{ boxShadow: `inset 0 0 0 1px ${CARD_BORDER_H}` }} />
       {/* Image preview — CSS background-image is immune to flex/absolute positioning
            quirks that caused the gradient bar to bleed through on alternate cards */}
-      <div style={{ position: 'relative', width: '100%', height: '160px', overflow: 'hidden' }}>
+      <div style={{ position: 'relative', width: '100%', height: '160px', flexShrink: 0, overflow: 'hidden' }}>
         {/* Image layer (covers fully) or gradient placeholder */}
         <div style={{
           position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
@@ -675,7 +676,7 @@ function CertCard({ cert, index, onClick }: { cert: Certificate; index: number; 
           </div>
         </div>
       </div>
-      <div className="p-4">
+      <div className="p-4 flex-1 flex flex-col">
         <h4 className="font-heading font-semibold text-white text-xs leading-snug line-clamp-2 mb-1">{cert.title}</h4>
         <p className="text-zinc-500 text-[11px] font-body line-clamp-1">{cert.issuer}</p>
         <p className="text-zinc-600 text-[10px] font-body mt-0.5">{cert.date}</p>
@@ -875,7 +876,7 @@ function CertificateCarousel({ certificates, onCertClick }: { certificates: Cert
       {/* ── cert-scroll-hide class now applied so webkit rule above takes effect ── */}
       <div
         ref={scrollRef}
-        className="cert-scroll-hide flex gap-3 overflow-x-auto pb-2"
+        className="cert-scroll-hide flex items-start gap-3 overflow-x-auto pb-2"
         style={{
           scrollSnapType: 'x mandatory',
           scrollbarWidth: 'none',
