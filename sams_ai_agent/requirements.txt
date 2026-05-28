@@ -7,3 +7,5 @@ google-genai>=1.5.0
 supabase>=2.7.0                  # includes async client
 httpx>=0.27.0
 python-dotenv>=1.0.1
+pypdf>=4.0.0                     # PDF text extraction
+python-docx>=1.1.0               # .docx text extraction

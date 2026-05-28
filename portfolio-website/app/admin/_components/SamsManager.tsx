@@ -15,6 +15,18 @@ const btnSecondary =
 const btnDanger =
   'px-3 py-1.5 rounded-lg bg-red-900/40 hover:bg-red-800/60 text-red-300 text-xs font-medium transition-colors disabled:opacity-50'
 
+// ─── Accepted file types ──────────────────────────────────────────────────────
+const ACCEPTED_EXTENSIONS = [
+  '.txt', '.md', '.markdown',
+  '.csv', '.tsv', '.log', '.yaml', '.yml', '.json', '.html', '.htm', '.rst', '.xml',
+  '.pdf',
+  '.docx',
+  '.jpg', '.jpeg', '.png', '.webp', '.gif',
+]
+const ACCEPT_ATTR = ACCEPTED_EXTENSIONS.join(',')
+
+const ACCEPTED_SET = new Set(ACCEPTED_EXTENSIONS)
+
 export function SamsManager({ samsAvatarUrl: initialAvatarUrl }: SamsManagerProps) {
   // ── Avatar state ──────────────────────────────────────────────────────────
   const [avatarUrl,    setAvatarUrl]    = useState(initialAvatarUrl ?? '')
@@ -66,14 +78,15 @@ export function SamsManager({ samsAvatarUrl: initialAvatarUrl }: SamsManagerProp
   // ── Ingestion handler ─────────────────────────────────────────────────────
   const handleIngest = async () => {
     if (!ingestFiles || ingestFiles.length === 0) {
-      setIngestStatus('Please select one or more .txt files.')
+      setIngestStatus('Please select one or more files.')
       return
     }
 
-    // Validate all files are .txt
+    // Validate all files have a supported extension
     for (let i = 0; i < ingestFiles.length; i++) {
-      if (!ingestFiles[i].name.toLowerCase().endsWith('.txt')) {
-        setIngestStatus(`✗ "${ingestFiles[i].name}" is not a .txt file. Only plain text files are accepted.`)
+      const ext = '.' + (ingestFiles[i].name.split('.').pop()?.toLowerCase() ?? '')
+      if (!ACCEPTED_SET.has(ext)) {
+        setIngestStatus(`✗ "${ingestFiles[i].name}" has an unsupported file type. Accepted: ${ACCEPTED_EXTENSIONS.join(', ')}`)
         return
       }
     }
@@ -203,7 +216,11 @@ export function SamsManager({ samsAvatarUrl: initialAvatarUrl }: SamsManagerProp
       >
         <h3 className="text-white font-semibold text-sm mb-1">Knowledge Base — Ingestion</h3>
         <p className="text-zinc-500 text-xs mb-4 leading-relaxed">
-          Upload plain-text <code className="bg-zinc-800 px-1 rounded text-zinc-300">.txt</code> files to add them to Sams' knowledge base. Each file is chunked, embedded via Gemini, and stored in Supabase pgvector.
+          Upload files to add them to Sams' knowledge base. Supported:{' '}
+          <code className="bg-zinc-800 px-1 rounded text-zinc-300">.txt .md .pdf .docx</code>,
+          images (<code className="bg-zinc-800 px-1 rounded text-zinc-300">.jpg .png .webp .gif</code>),
+          and data files (<code className="bg-zinc-800 px-1 rounded text-zinc-300">.csv .json .yaml</code> and more).
+          Each file is chunked, embedded via Gemini, and stored in Supabase pgvector.
           You can upload multiple files at once.
         </p>
 
@@ -222,7 +239,7 @@ export function SamsManager({ samsAvatarUrl: initialAvatarUrl }: SamsManagerProp
             <input
               ref={ingestInputRef}
               type="file"
-              accept=".txt"
+              accept={ACCEPT_ATTR}
               multiple
               className="hidden"
               onChange={e => setIngestFiles(e.target.files)}
@@ -235,9 +252,11 @@ export function SamsManager({ samsAvatarUrl: initialAvatarUrl }: SamsManagerProp
             <p className="text-zinc-400 text-sm">
               {ingestFiles && ingestFiles.length > 0
                 ? `${ingestFiles.length} file(s) selected`
-                : 'Click or drag .txt files here'}
+                : 'Click or drag files here'}
             </p>
-            <p className="text-zinc-600 text-xs mt-1">Plain text only — UTF-8 encoded</p>
+            <p className="text-zinc-600 text-xs mt-1">
+              .txt · .md · .pdf · .docx · .jpg · .png · .webp · .gif · .csv · .json · .yaml · and more
+            </p>
           </div>
 
           <button

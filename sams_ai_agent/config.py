@@ -26,20 +26,21 @@ class Settings(BaseSettings):
     # ── Gemini ────────────────────────────────────────────────
     gemini_api_key: str = Field(..., description="Google AI Studio API key")
     gemini_chat_model: str = Field(default="gemini-2.5-flash")
-    gemini_embedding_model: str = Field(default="gemini-embedding-001")
+    gemini_embedding_model: str = Field(default="gemini-embedding-2")
 
     # ── Vector / Table ────────────────────────────────────────
     embedding_dimensions: int = Field(
-        default=768,
+        default=3072,
         description=(
             "Must match the VECTOR() dimension in the DB. "
-            "768 for gemini-embedding-001; 3072 for gemini-embedding-exp-03-07."
+            "gemini-embedding-2 outputs 3072 by default (Matryoshka: 1536 or 768 also supported)."
         ),
     )
 
     # ── Chunking ──────────────────────────────────────────────
-    chunk_size: int = Field(default=1000, ge=100, le=8000)
-    chunk_overlap: int = Field(default=200, ge=0, le=1000)
+    # Larger chunks suit gemini-embedding-2's bigger context window.
+    chunk_size: int = Field(default=1500, ge=100, le=8000)
+    chunk_overlap: int = Field(default=300, ge=0, le=1000)
 
     # ── Retrieval ─────────────────────────────────────────────
     match_threshold: float = Field(default=0.45, ge=0.0, le=1.0)
@@ -69,8 +70,8 @@ class Settings(BaseSettings):
 
     # ── Uploads ───────────────────────────────────────────────
     max_upload_bytes: int = Field(
-        default=5 * 1024 * 1024,   # 5 MB
-        description="Maximum allowed size of an uploaded .txt file in bytes.",
+        default=20 * 1024 * 1024,   # 20 MB — accommodates PDFs, images, docx
+        description="Maximum allowed size of an uploaded file in bytes.",
     )
 
     # ── Runtime environment ───────────────────────────────────
@@ -87,7 +88,7 @@ class Settings(BaseSettings):
     @field_validator("chunk_overlap")
     @classmethod
     def overlap_must_be_less_than_chunk(cls, v: int, info) -> int:
-        chunk_size = info.data.get("chunk_size", 1000)
+        chunk_size = info.data.get("chunk_size", 1500)
         if v >= chunk_size:
             raise ValueError("chunk_overlap must be strictly less than chunk_size")
         return v
