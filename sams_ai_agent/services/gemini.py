@@ -22,7 +22,7 @@ Context caching
 
 Thinking budget
 ────────────────
-  thinking_budget=2048 allows up to 2048 thinking tokens for the chat model.
+  thinking_budget=512 allows up to 512 thinking tokens for the chat model.
   For a portfolio Q&A bot this gives the fastest possible latency with no quality loss.
 """
 
@@ -279,7 +279,7 @@ class GeminiService:
                 config=types.GenerateContentConfig(
                     temperature=0.1,
                     max_output_tokens=4096,
-                    thinking_config=types.ThinkingConfig(thinking_budget=2048),
+                    thinking_config=types.ThinkingConfig(thinking_budget=512),
                 ),
             )
             return response.text or ""
@@ -303,7 +303,7 @@ class GeminiService:
 
         The system prompt is served from the Gemini context cache where available,
         cutting per-request token cost and lowering time-to-first-token.
-        thinking_budget=2048 — balanced reasoning quality without excessive latency.
+        thinking_budget=512 — balanced reasoning quality without excessive latency.
         """
         context_block = _format_context(context_chunks)
 
@@ -345,7 +345,7 @@ class GeminiService:
         )
 
         # ── Resolve generation config (cached vs. uncached) ────────────────────
-        # thinking_budget=2048 — balanced reasoning quality vs. latency for Q&A.
+        # thinking_budget=512 — balanced reasoning quality vs. latency for Q&A.
         cache_name = await _get_or_create_cache(
             self._client, self._settings.gemini_chat_model
         )
@@ -354,7 +354,7 @@ class GeminiService:
             # System prompt is served from cache — do NOT re-pass system_instruction.
             gen_config = types.GenerateContentConfig(
                 cached_content=cache_name,
-                thinking_config=types.ThinkingConfig(thinking_budget=2048),
+                thinking_config=types.ThinkingConfig(thinking_budget=512),
                 temperature=0.75,
                 max_output_tokens=1024,
             )
@@ -362,7 +362,7 @@ class GeminiService:
             # Fallback: include system prompt inline (prompt too short to cache).
             gen_config = types.GenerateContentConfig(
                 system_instruction=_SAMS_SYSTEM_PROMPT,
-                thinking_config=types.ThinkingConfig(thinking_budget=2048),
+                thinking_config=types.ThinkingConfig(thinking_budget=512),
                 temperature=0.75,
                 max_output_tokens=1024,
             )
