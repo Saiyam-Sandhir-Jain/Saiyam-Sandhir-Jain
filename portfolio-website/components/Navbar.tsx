@@ -103,7 +103,7 @@ export function Navbar({ navigation, currentView, onViewChange, onAnchorClick, o
         {/* SJ logo — toggles Sams AI */}
         <button
           onClick={() => { setMenuOpen(false); onAgentToggle?.() }}
-          className="flex items-center justify-center shrink-0 select-none relative"
+          className="flex items-center justify-center shrink-0 select-none relative ml-1 md:ml-0"
           aria-label="Toggle Sams AI chat"
           aria-expanded={agentOpen}
         >
@@ -135,9 +135,11 @@ export function Navbar({ navigation, currentView, onViewChange, onAnchorClick, o
         />
 
         {/* ── Mobile: centre label + chevron toggle ── */}
+        {/* The flex-1 div centres the button without making the whole row clickable */}
+        <div className="md:hidden flex-1 flex items-center justify-center">
         <button
           onClick={() => setMenuOpen(o => !o)}
-          className="md:hidden flex-1 flex items-center justify-center gap-1.5 select-none"
+          className="flex items-center gap-1.5 select-none px-2 py-1"
           aria-label="Open navigation menu"
           aria-expanded={menuOpen}
         >
@@ -167,6 +169,7 @@ export function Navbar({ navigation, currentView, onViewChange, onAnchorClick, o
             <polyline points="6 9 12 15 18 9" />
           </svg>
         </button>
+        </div>
 
         {/* ── Desktop nav links (md+) ── */}
         <ul className="hidden md:flex items-center flex-1 justify-around">
