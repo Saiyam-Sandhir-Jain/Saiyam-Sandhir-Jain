@@ -212,32 +212,276 @@ function TypingDots() {
   )
 }
 
-/** Renders a small subset of Markdown: **bold**, [text](url), newlines. */
-function renderMarkdown(text: string): React.ReactNode[] {
-  const lines = text.split('\n')
-  return lines.flatMap((line, li) => {
-    // tokenise each line by **bold** and [label](url)
-    const tokens: React.ReactNode[] = []
-    const re = /\*\*(.+?)\*\*|\[([^\]]+)\]\((https?:\/\/[^)]+)\)/g
-    let last = 0, m: RegExpExecArray | null
-    while ((m = re.exec(line)) !== null) {
-      if (m.index > last) tokens.push(line.slice(last, m.index))
-      if (m[1] !== undefined) {
-        tokens.push(<strong key={`b-${li}-${m.index}`}>{m[1]}</strong>)
-      } else {
-        tokens.push(
-          <a key={`a-${li}-${m.index}`} href={m[3]} target="_blank" rel="noopener noreferrer"
-            style={{ color: ACCENT, textDecoration: 'underline' }}>
-            {m[2]}
-          </a>
-        )
-      }
-      last = re.lastIndex
+// ─── Inline token renderer (bold, italic, code, links) ───────────────────────
+function renderInline(text: string, keyPrefix: string): React.ReactNode[] {
+  const tokens: React.ReactNode[] = []
+  // Matches: **bold**, *italic*, `code`, [label](url), plain URLs
+  const re = /\*\*(.+?)\*\*|\*(.+?)\*|`([^`]+)`|\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)|(https?:\/\/\S+)/g
+  let last = 0
+  let m: RegExpExecArray | null
+  while ((m = re.exec(text)) !== null) {
+    if (m.index > last) tokens.push(text.slice(last, m.index))
+    if (m[1] !== undefined) {
+      tokens.push(<strong key={`${keyPrefix}-b${m.index}`}>{m[1]}</strong>)
+    } else if (m[2] !== undefined) {
+      tokens.push(<em key={`${keyPrefix}-i${m.index}`}>{m[2]}</em>)
+    } else if (m[3] !== undefined) {
+      tokens.push(
+        <code key={`${keyPrefix}-c${m.index}`}
+          style={{ backgroundColor: 'rgba(128,128,128,0.15)', borderRadius: 3, padding: '1px 4px', fontFamily: 'monospace', fontSize: '0.85em' }}>
+          {m[3]}
+        </code>
+      )
+    } else if (m[4] !== undefined && m[5] !== undefined) {
+      // [label](url)
+      tokens.push(
+        <a key={`${keyPrefix}-a${m.index}`} href={m[5]} target="_blank" rel="noopener noreferrer"
+          style={{ color: ACCENT, textDecoration: 'underline', cursor: 'pointer', WebkitTapHighlightColor: 'transparent' }}
+          onClick={e => { e.stopPropagation(); window.open(m![5], '_blank', 'noopener,noreferrer') }}>
+          {m[4]}
+        </a>
+      )
+    } else if (m[6] !== undefined) {
+      // bare URL
+      tokens.push(
+        <a key={`${keyPrefix}-u${m.index}`} href={m[6]} target="_blank" rel="noopener noreferrer"
+          style={{ color: ACCENT, textDecoration: 'underline', cursor: 'pointer', WebkitTapHighlightColor: 'transparent' }}
+          onClick={e => { e.stopPropagation(); window.open(m![6], '_blank', 'noopener,noreferrer') }}>
+          {m[6]}
+        </a>
+      )
     }
-    if (last < line.length) tokens.push(line.slice(last))
-    if (li < lines.length - 1) tokens.push(<br key={`br-${li}`} />)
-    return tokens
-  })
+    last = re.lastIndex
+  }
+  if (last < text.length) tokens.push(text.slice(last))
+  return tokens
+}
+
+// ─── Block-level markdown renderer ────────────────────────────────────────────
+function renderMarkdown(text: string): React.ReactNode {
+  // Normalize line endings
+  const raw = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n')
+  const lines = raw.split('\n')
+
+  const nodes: React.ReactNode[] = []
+  let i = 0
+
+  while (i < lines.length) {
+    const line = lines[i]
+
+    // ── Fenced code block ```...```
+    if (/^```/.test(line)) {
+      const lang = line.slice(3).trim()
+      const codeLines: string[] = []
+      i++
+      while (i < lines.length && !/^```/.test(lines[i])) {
+        codeLines.push(lines[i])
+        i++
+      }
+      i++ // skip closing ```
+      nodes.push(
+        <pre key={`code-${i}`}
+          style={{ backgroundColor: 'rgba(0,0,0,0.25)', borderRadius: 6, padding: '8px 10px', overflowX: 'auto', fontSize: '0.8em', fontFamily: 'monospace', margin: '6px 0', whiteSpace: 'pre' }}>
+          {lang && <span style={{ display: 'block', fontSize: '0.75em', opacity: 0.5, marginBottom: 4 }}>{lang}</span>}
+          {codeLines.join('\n')}
+        </pre>
+      )
+      continue
+    }
+
+    // ── LaTeX display math $$...$$  (can span multiple lines)
+    if (/^\s*\$\$/.test(line)) {
+      const mathLines: string[] = []
+      const startLine = line
+      // single-line $$...$$ ?
+      const singleLine = startLine.replace(/^\s*\$\$/, '').replace(/\$\$\s*$/, '')
+      if (/^\s*\$\$.*\$\$\s*$/.test(startLine) && startLine.indexOf('$$', startLine.indexOf('$$') + 2) !== -1) {
+        nodes.push(
+          <div key={`math-${i}`} style={{ padding: '4px 0', fontStyle: 'italic', opacity: 0.85, overflowX: 'auto' }}>
+            <code style={{ fontFamily: 'monospace', fontSize: '0.9em' }}>{singleLine}</code>
+          </div>
+        )
+        i++
+        continue
+      }
+      // multi-line
+      i++
+      while (i < lines.length && !/\$\$/.test(lines[i])) {
+        mathLines.push(lines[i])
+        i++
+      }
+      i++ // skip closing $$
+      nodes.push(
+        <div key={`math-${i}`} style={{ padding: '4px 0', fontStyle: 'italic', opacity: 0.85, overflowX: 'auto' }}>
+          <code style={{ fontFamily: 'monospace', fontSize: '0.9em' }}>{mathLines.join(' ')}</code>
+        </div>
+      )
+      continue
+    }
+
+    // ── Heading #, ##, ###
+    const headingMatch = line.match(/^(#{1,3})\s+(.+)$/)
+    if (headingMatch) {
+      const level = headingMatch[1].length
+      const content = renderInline(headingMatch[2], `h${i}`)
+      const sizes = ['1.1em', '1em', '0.95em']
+      nodes.push(
+        <div key={`h${i}`} style={{ fontWeight: 700, fontSize: sizes[level - 1] ?? '1em', margin: '8px 0 3px' }}>
+          {content}
+        </div>
+      )
+      i++
+      continue
+    }
+
+    // ── Horizontal rule ---
+    if (/^[-*_]{3,}\s*$/.test(line)) {
+      nodes.push(<hr key={`hr-${i}`} style={{ border: 'none', borderTop: '1px solid rgba(128,128,128,0.3)', margin: '6px 0' }} />)
+      i++
+      continue
+    }
+
+    // ── Table  (pipe-delimited)
+    if (/\|/.test(line) && i + 1 < lines.length && /^\|?[\s:|-]+\|/.test(lines[i + 1])) {
+      const tableRows: string[][] = []
+      while (i < lines.length && /\|/.test(lines[i])) {
+        const cells = lines[i].replace(/^\||\|$/g, '').split('|').map(c => c.trim())
+        tableRows.push(cells)
+        i++
+      }
+      // row 0 = header, row 1 = separator (skip), rest = body
+      const header = tableRows[0] ?? []
+      const body = tableRows.slice(2)
+      nodes.push(
+        <div key={`tbl-${i}`} style={{ overflowX: 'auto', margin: '6px 0' }}>
+          <table style={{ borderCollapse: 'collapse', fontSize: '0.82em', width: '100%' }}>
+            <thead>
+              <tr>
+                {header.map((h, ci) => (
+                  <th key={ci} style={{ border: '1px solid rgba(128,128,128,0.3)', padding: '4px 8px', textAlign: 'left', fontWeight: 700 }}>
+                    {renderInline(h, `th-${i}-${ci}`)}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {body.map((row, ri) => (
+                <tr key={ri}>
+                  {row.map((cell, ci) => (
+                    <td key={ci} style={{ border: '1px solid rgba(128,128,128,0.3)', padding: '4px 8px' }}>
+                      {renderInline(cell, `td-${i}-${ri}-${ci}`)}
+                    </td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )
+      continue
+    }
+
+    // ── Unordered list (-, *, +)
+    if (/^[-*+]\s/.test(line)) {
+      const items: React.ReactNode[] = []
+      while (i < lines.length && /^[-*+]\s/.test(lines[i])) {
+        const itemText = lines[i].replace(/^[-*+]\s+/, '')
+        items.push(
+          <li key={i} style={{ marginBottom: 2, paddingLeft: 4 }}>
+            {renderInline(itemText, `ul-${i}`)}
+          </li>
+        )
+        i++
+      }
+      nodes.push(
+        <ul key={`ul-${i}`} style={{ margin: '4px 0', paddingLeft: 18, listStyleType: 'disc' }}>
+          {items}
+        </ul>
+      )
+      continue
+    }
+
+    // ── Ordered list (1. 2. etc)
+    if (/^\d+\.\s/.test(line)) {
+      const items: React.ReactNode[] = []
+      while (i < lines.length && /^\d+\.\s/.test(lines[i])) {
+        const itemText = lines[i].replace(/^\d+\.\s+/, '')
+        items.push(
+          <li key={i} style={{ marginBottom: 2, paddingLeft: 4 }}>
+            {renderInline(itemText, `ol-${i}`)}
+          </li>
+        )
+        i++
+      }
+      nodes.push(
+        <ol key={`ol-${i}`} style={{ margin: '4px 0', paddingLeft: 20, listStyleType: 'decimal' }}>
+          {items}
+        </ol>
+      )
+      continue
+    }
+
+    // ── Blockquote >
+    if (/^>\s?/.test(line)) {
+      const quoteLines: string[] = []
+      while (i < lines.length && /^>\s?/.test(lines[i])) {
+        quoteLines.push(lines[i].replace(/^>\s?/, ''))
+        i++
+      }
+      nodes.push(
+        <blockquote key={`bq-${i}`}
+          style={{ borderLeft: `3px solid ${ACCENT}`, margin: '4px 0', paddingLeft: 10, opacity: 0.8, fontStyle: 'italic' }}>
+          {quoteLines.map((ql, qi) => (
+            <div key={qi}>{renderInline(ql, `bq-${i}-${qi}`)}</div>
+          ))}
+        </blockquote>
+      )
+      continue
+    }
+
+    // ── Inline math $...$  within a paragraph line
+    if (/\$[^$]+\$/.test(line)) {
+
+      const parts = line.split(/(\$[^$]+\$)/)
+      const rendered = parts.map((part, pi) => {
+        const mathMatch = part.match(/^\$([^$]+)\$$/)
+        if (mathMatch) {
+          return (
+            <code key={`im-${i}-${pi}`}
+              style={{ fontFamily: 'monospace', fontStyle: 'italic', backgroundColor: 'rgba(128,128,128,0.12)', borderRadius: 3, padding: '1px 3px', fontSize: '0.88em' }}>
+              {mathMatch[1]}
+            </code>
+          )
+        }
+        return renderInline(part, `p-${i}-${pi}`)
+      })
+      // Empty line = paragraph break
+      if (line.trim() === '') {
+        nodes.push(<div key={`sp-${i}`} style={{ height: 6 }} />)
+      } else {
+        nodes.push(<div key={`il-${i}`} style={{ marginBottom: 2 }}>{rendered}</div>)
+      }
+      i++
+      continue
+    }
+
+    // ── Empty line → small spacer
+    if (line.trim() === '') {
+      nodes.push(<div key={`sp-${i}`} style={{ height: 6 }} />)
+      i++
+      continue
+    }
+
+    // ── Regular paragraph line
+    nodes.push(
+      <div key={`p-${i}`} style={{ marginBottom: 2 }}>
+        {renderInline(line, `p-${i}`)}
+      </div>
+    )
+    i++
+  }
+
+  return <>{nodes}</>
 }
 
 function MessageBubble({ msg, samsAvatarUrl }: { msg: Message; samsAvatarUrl?: string | null }) {
@@ -259,11 +503,23 @@ function MessageBubble({ msg, samsAvatarUrl }: { msg: Message; samsAvatarUrl?: s
           </div>
         ) : (
           <div
-            className="px-3.5 py-2.5 rounded-2xl text-sm font-body leading-relaxed whitespace-pre-wrap"
+            className="px-3.5 py-2.5 text-sm font-body leading-relaxed"
             style={
               isUser
-                ? { backgroundColor: ACCENT, color: '#fff', borderBottomRightRadius: 6, boxShadow: '0 4px 12px rgba(255,69,0,0.2)' }
-                : { backgroundColor: 'var(--bg-elevated)', color: 'var(--text-primary)', borderBottomLeftRadius: 6, border: `1px solid ${BORDER}` }
+                ? {
+                    backgroundColor: ACCENT,
+                    color: '#fff',
+                    // top-right corner pointy, rest rounded
+                    borderRadius: '18px 6px 18px 18px',
+                    boxShadow: '0 4px 12px rgba(255,69,0,0.2)',
+                  }
+                : {
+                    backgroundColor: 'var(--bg-elevated)',
+                    color: 'var(--text-primary)',
+                    // top-left corner pointy, rest rounded
+                    borderRadius: '6px 18px 18px 18px',
+                    border: `1px solid ${BORDER}`,
+                  }
             }
           >
             {isUser ? msg.text : renderMarkdown(msg.text)}
