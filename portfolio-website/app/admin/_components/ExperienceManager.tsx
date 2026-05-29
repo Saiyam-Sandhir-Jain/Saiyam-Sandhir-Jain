@@ -107,7 +107,7 @@ export function ExperienceManager({ initial }: { initial: ExpItem[] }) {
             {editing === item.id ? (
               /* ── Inline edit form ── */
               <div className="space-y-2">
-                <div className="grid grid-cols-2 gap-2">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                   <div><label className={labelCls}>Role</label>
                     <input className={inputCls} value={form.role} onChange={f('role')} /></div>
                   <div><label className={labelCls}>Company</label>
@@ -132,7 +132,7 @@ export function ExperienceManager({ initial }: { initial: ExpItem[] }) {
               </div>
             ) : (
               /* ── Read view ── */
-              <div className="flex items-center justify-between gap-3">
+              <div className="flex items-start sm:items-center justify-between gap-3 flex-wrap">
                 <div>
                   <p className="text-sm font-semibold text-orange-400">{item.role}</p>
                   <p className="text-xs text-zinc-400">{item.start_date} – {item.end_date} · {item.company}</p>
@@ -157,7 +157,7 @@ export function ExperienceManager({ initial }: { initial: ExpItem[] }) {
       {adding ? (
         <div className="border border-zinc-700 rounded-lg p-4 space-y-3">
           <p className="text-sm font-semibold text-zinc-300">New Experience</p>
-          <div className="grid grid-cols-2 gap-2">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
             <div><label className={labelCls}>Role</label>
               <input className={inputCls} value={form.role} onChange={f('role')} placeholder="SDE Intern" /></div>
             <div><label className={labelCls}>Company</label>

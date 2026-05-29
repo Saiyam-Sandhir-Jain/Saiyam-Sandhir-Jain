@@ -5,6 +5,7 @@ import { createPortal } from 'react-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { cn } from '@/lib/utils'
 import type { ResearchPaper, Patent, Certificate, LOR, Explorations as ExplorationsData } from '@/types/portfolio'
+import { AskSamsButton } from '@/components/AskSamsButton'
 
 // ─── Shared token colours ──────────────────────────────────────────────────
 const ACCENT        = '#FF4500'
@@ -107,13 +108,23 @@ function PaperCard({ paper, onClick, className }: { paper: ResearchPaper; onClic
 
 // ─── Research Paper Modal ─────────────────────────────────────────────────
 
-export function PaperModal({ paper, onClose }: { paper: ResearchPaper | null; onClose: () => void }) {
+export function PaperModal({ paper, onClose, onAskSams }: { paper: ResearchPaper | null; onClose: () => void; onAskSams?: (q: string) => void }) {
   useEffect(() => {
     if (!paper) return
     const handle = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
     document.addEventListener('keydown', handle)
     document.body.style.overflow = 'hidden'
-    return () => { document.removeEventListener('keydown', handle); document.body.style.overflow = '' }
+    // Push a dummy history entry so the mobile back button closes this modal
+    history.pushState({ modal: 'paper' }, '')
+    const handlePop = () => onClose()
+    window.addEventListener('popstate', handlePop)
+    return () => {
+      document.removeEventListener('keydown', handle)
+      window.removeEventListener('popstate', handlePop)
+      document.body.style.overflow = ''
+      // If closing programmatically (not via back button), pop the dummy entry
+      if (history.state?.modal === 'paper') history.back()
+    }
   }, [paper, onClose])
 
   return (
@@ -181,27 +192,37 @@ export function PaperModal({ paper, onClose }: { paper: ResearchPaper | null; on
                 </div>
 
                 {/* ── Sticky CTA footer — always visible, never scrolls away ── */}
-                <div className="shrink-0 flex flex-col sm:flex-row gap-2 px-6 lg:px-8 pb-5 pt-3 border-t" style={{ borderColor: 'var(--border-subtle)' }}>
-                  {paper.status === 'upcoming' ? (
-                    <button
-                      disabled
-                      className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl font-heading font-semibold text-sm text-white cursor-not-allowed"
-                      style={{ backgroundColor: ACCENT, opacity: 0.4 }}
-                    >
-                      Not Published Yet
-                    </button>
-                  ) : (
-                    <a
-                      href={paper.url !== '#' ? paper.url : undefined}
-                      target="_blank" rel="noopener noreferrer"
-                      onClick={paper.url === '#' ? e => e.preventDefault() : undefined}
-                      className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl font-heading font-semibold text-sm text-white transition-all duration-200 hover:brightness-110 hover:scale-[1.02]"
-                      style={{ backgroundColor: ACCENT, boxShadow: '0 4px 20px rgba(255,69,0,0.3)', cursor: paper.url === '#' ? 'not-allowed' : 'pointer', opacity: paper.url === '#' ? 0.7 : 1, touchAction: 'manipulation' }}
-                    >
-                      View
-                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="7" y1="17" x2="17" y2="7"/><polyline points="7 7 17 7 17 17"/></svg>
-                    </a>
-                  )}
+                <div className="shrink-0 flex flex-col gap-2 px-6 lg:px-8 pb-5 pt-3 border-t" style={{ borderColor: 'var(--border-subtle)' }}>
+                  {/* View / Unavailable button + Ask Sams on same row */}
+                  <div className="flex gap-2">
+                    {paper.status === 'upcoming' ? (
+                      <button
+                        disabled
+                        className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl font-heading font-semibold text-sm text-white cursor-not-allowed"
+                        style={{ backgroundColor: ACCENT, opacity: 0.4 }}
+                      >
+                        Not Published Yet
+                      </button>
+                    ) : (
+                      <a
+                        href={paper.url !== '#' ? paper.url : undefined}
+                        target="_blank" rel="noopener noreferrer"
+                        onClick={paper.url === '#' ? e => e.preventDefault() : undefined}
+                        className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl font-heading font-semibold text-sm text-white transition-all duration-200 hover:brightness-110 hover:scale-[1.02]"
+                        style={{ backgroundColor: ACCENT, boxShadow: '0 4px 20px rgba(255,69,0,0.3)', cursor: paper.url === '#' ? 'not-allowed' : 'pointer', opacity: paper.url === '#' ? 0.7 : 1, touchAction: 'manipulation' }}
+                      >
+                        View
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="7" y1="17" x2="17" y2="7"/><polyline points="7 7 17 7 17 17"/></svg>
+                      </a>
+                    )}
+                    {onAskSams && (
+                      <AskSamsButton
+                        query={`Tell me about the research paper "${paper.title}"${paper.venue ? ` published at ${paper.venue}` : ''}.`}
+                        onAsk={(q) => { onClose(); setTimeout(() => onAskSams(q), 180) }}
+                        variant="inline"
+                      />
+                    )}
+                  </div>
                   <button onClick={onClose} className="flex-1 py-3 rounded-xl font-heading font-semibold text-sm transition-all duration-200" style={{ backgroundColor: 'var(--bg-elevated)', border: '1px solid var(--border)', color: 'var(--text-secondary)', touchAction: 'manipulation' }}>
                     Close
                   </button>
@@ -262,7 +283,7 @@ function PatentCard({ patent, onClick, className }: { patent: Patent; onClick: (
 
 // ─── Patent Modal ─────────────────────────────────────────────────────────
 
-export function PatentModal({ patent, onClose }: { patent: Patent | null; onClose: () => void }) {
+export function PatentModal({ patent, onClose, onAskSams }: { patent: Patent | null; onClose: () => void; onAskSams?: (q: string) => void }) {
   const [copied, setCopied] = useState(false)
 
   useEffect(() => {
@@ -270,7 +291,16 @@ export function PatentModal({ patent, onClose }: { patent: Patent | null; onClos
     const handle = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
     document.addEventListener('keydown', handle)
     document.body.style.overflow = 'hidden'
-    return () => { document.removeEventListener('keydown', handle); document.body.style.overflow = '' }
+    // Push a dummy history entry so the mobile back button closes this modal
+    history.pushState({ modal: 'patent' }, '')
+    const handlePop = () => onClose()
+    window.addEventListener('popstate', handlePop)
+    return () => {
+      document.removeEventListener('keydown', handle)
+      window.removeEventListener('popstate', handlePop)
+      document.body.style.overflow = ''
+      if (history.state?.modal === 'patent') history.back()
+    }
   }, [patent, onClose])
 
   const handleCopy = async () => {
@@ -347,28 +377,38 @@ export function PatentModal({ patent, onClose }: { patent: Patent | null; onClos
                 </div>
 
                 {/* ── Sticky CTA footer — always visible, never scrolls away ── */}
-                <div className="shrink-0 flex flex-col sm:flex-row gap-2 px-6 lg:px-8 pb-5 pt-3 border-t" style={{ borderColor: 'var(--border-subtle)' }}>
-                  {patent.status === 'upcoming' ? (
-                    <button
-                      disabled
-                      className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl font-heading font-semibold text-sm text-white cursor-not-allowed"
-                      style={{ backgroundColor: '#FF4500', opacity: 0.4 }}
-                    >
-                      Not Filed Yet
-                    </button>
-                  ) : (
-                    <button
-                      onClick={handleCopy}
-                      className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl font-heading font-semibold text-sm text-white transition-all duration-200 hover:brightness-110 hover:scale-[1.02]"
-                      style={{ backgroundColor: copied ? 'rgba(34,197,94,0.85)' : ACCENT, boxShadow: copied ? '0 4px 20px rgba(34,197,94,0.25)' : '0 4px 20px rgba(255,69,0,0.3)', touchAction: 'manipulation' }}
-                    >
-                      {copied ? (
-                        <><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>Copied!</>
-                      ) : (
-                        <><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>Copy Reg. No.</>
-                      )}
-                    </button>
-                  )}
+                <div className="shrink-0 flex flex-col gap-2 px-6 lg:px-8 pb-5 pt-3 border-t" style={{ borderColor: 'var(--border-subtle)' }}>
+                  {/* Copy reg no / Unavailable + Ask Sams on same row */}
+                  <div className="flex gap-2">
+                    {patent.status === 'upcoming' ? (
+                      <button
+                        disabled
+                        className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl font-heading font-semibold text-sm text-white cursor-not-allowed"
+                        style={{ backgroundColor: '#FF4500', opacity: 0.4 }}
+                      >
+                        Not Filed Yet
+                      </button>
+                    ) : (
+                      <button
+                        onClick={handleCopy}
+                        className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl font-heading font-semibold text-sm text-white transition-all duration-200 hover:brightness-110 hover:scale-[1.02]"
+                        style={{ backgroundColor: copied ? 'rgba(34,197,94,0.85)' : ACCENT, boxShadow: copied ? '0 4px 20px rgba(34,197,94,0.25)' : '0 4px 20px rgba(255,69,0,0.3)', touchAction: 'manipulation' }}
+                      >
+                        {copied ? (
+                          <><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>Copied!</>
+                        ) : (
+                          <><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>Copy Reg. No.</>
+                        )}
+                      </button>
+                    )}
+                    {onAskSams && (
+                      <AskSamsButton
+                        query={`Tell me about the patent "${patent.title}"${patent.registrationNumber ? ` (Reg. No. ${patent.registrationNumber})` : ''}.`}
+                        onAsk={(q) => { onClose(); setTimeout(() => onAskSams(q), 180) }}
+                        variant="inline"
+                      />
+                    )}
+                  </div>
                   <button onClick={onClose} className="flex-1 py-3 rounded-xl font-heading font-semibold text-sm transition-all duration-200" style={{ backgroundColor: 'var(--bg-elevated)', border: '1px solid var(--border)', color: 'var(--text-secondary)', touchAction: 'manipulation' }}>
                     Close
                   </button>
@@ -687,13 +727,21 @@ function CertCard({ cert, index, onClick }: { cert: Certificate; index: number; 
 
 // ─── Certificate Viewer (Lightbox) ─────────────────────────────────────────
 
-function CertViewer({ cert, onClose }: { cert: Certificate | null; onClose: () => void }) {
+function CertViewer({ cert, onClose, onAskSams }: { cert: Certificate | null; onClose: () => void; onAskSams?: (q: string) => void }) {
   useEffect(() => {
     if (!cert) return
     const handle = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
     document.addEventListener('keydown', handle)
     document.body.style.overflow = 'hidden'
-    return () => { document.removeEventListener('keydown', handle); document.body.style.overflow = '' }
+    history.pushState({ modal: 'cert' }, '')
+    const handlePop = () => onClose()
+    window.addEventListener('popstate', handlePop)
+    return () => {
+      document.removeEventListener('keydown', handle)
+      window.removeEventListener('popstate', handlePop)
+      document.body.style.overflow = ''
+      if (history.state?.modal === 'cert') history.back()
+    }
   }, [cert, onClose])
 
   return (
@@ -743,8 +791,19 @@ function CertViewer({ cert, onClose }: { cert: Certificate | null; onClose: () =
                   )}
                   <div className="pointer-events-none absolute inset-0" style={{ background: 'radial-gradient(ellipse 50% 40% at 50% 100%, rgba(255,69,0,0.08), transparent 60%)' }} />
                 </div>
-                <div className="px-5 py-3 border-t flex justify-end shrink-0" style={{ borderColor: 'var(--border-subtle)' }}>
-                  <button onClick={onClose} className="px-5 py-2 rounded-lg font-heading font-semibold text-xs text-zinc-400 transition-all duration-200 hover:text-white" style={{ backgroundColor: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)' }}>
+                <div className="px-5 py-3 border-t flex items-center justify-end gap-2 shrink-0" style={{ borderColor: 'var(--border-subtle)' }}>
+                  {onAskSams && (
+                    <AskSamsButton
+                      query={`Tell me about the "${cert.title}" certificate from ${cert.issuer} on Samyak's profile.`}
+                      onAsk={(q) => { onClose(); setTimeout(() => onAskSams(q), 180) }}
+                      variant="fit"
+                    />
+                  )}
+                  <button
+                    onClick={onClose}
+                    className="shrink-0 px-5 py-2 rounded-lg font-heading font-semibold text-xs text-zinc-400 transition-all duration-200 hover:text-white"
+                    style={{ backgroundColor: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)' }}
+                  >
                     Close
                   </button>
                 </div>
@@ -912,13 +971,21 @@ function CertificateCarousel({ certificates, onCertClick }: { certificates: Cert
 // ─── LOR PDF Viewer ───────────────────────────────────────────────────────
 // ═══════════════════════════════════════════════════════════════════════════
 
-function LORViewer({ lor, onClose }: { lor: LOR | null; onClose: () => void }) {
+function LORViewer({ lor, onClose, onAskSams }: { lor: LOR | null; onClose: () => void; onAskSams?: (q: string) => void }) {
   useEffect(() => {
     if (!lor) return
     const handle = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
     document.addEventListener('keydown', handle)
     document.body.style.overflow = 'hidden'
-    return () => { document.removeEventListener('keydown', handle); document.body.style.overflow = '' }
+    history.pushState({ modal: 'lor' }, '')
+    const handlePop = () => onClose()
+    window.addEventListener('popstate', handlePop)
+    return () => {
+      document.removeEventListener('keydown', handle)
+      window.removeEventListener('popstate', handlePop)
+      document.body.style.overflow = ''
+      if (history.state?.modal === 'lor') history.back()
+    }
   }, [lor, onClose])
 
   return (
@@ -994,10 +1061,17 @@ function LORViewer({ lor, onClose }: { lor: LOR | null; onClose: () => void }) {
                 </div>
 
                 {/* Footer */}
-                <div className="px-5 py-3 border-t flex justify-end shrink-0" style={{ borderColor: 'var(--border-subtle)' }}>
+                <div className="px-5 py-3 border-t flex items-center justify-end gap-2 shrink-0" style={{ borderColor: 'var(--border-subtle)' }}>
+                  {onAskSams && (
+                    <AskSamsButton
+                      query={`Tell me about the letter of recommendation for Samyak from ${lor.recommender} at ${lor.organization}.`}
+                      onAsk={(q) => { onClose(); setTimeout(() => onAskSams(q), 180) }}
+                      variant="fit"
+                    />
+                  )}
                   <button
                     onClick={onClose}
-                    className="px-5 py-2 rounded-lg font-heading font-semibold text-xs text-zinc-400 transition-all duration-200 hover:text-white"
+                    className="shrink-0 px-5 py-2 rounded-lg font-heading font-semibold text-xs text-zinc-400 transition-all duration-200 hover:text-white"
                     style={{ backgroundColor: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)' }}
                   >
                     Close
@@ -1110,7 +1184,7 @@ function AnimeSection({ children, className, delay = 0 }: { children: React.Reac
 // ─── Main Explorations View ───────────────────────────────────────────────
 // ═══════════════════════════════════════════════════════════════════════════
 
-export function Explorations({ data }: { data: ExplorationsData }) {
+export function Explorations({ data, onAskSams }: { data: ExplorationsData; onAskSams?: (q: string) => void }) {
   const [selectedPaper,  setPaper]  = useState<ResearchPaper | null>(null)
   const [selectedPatent, setPatent] = useState<Patent | null>(null)
   const [selectedCert,   setCert]   = useState<Certificate | null>(null)
@@ -1186,10 +1260,10 @@ export function Explorations({ data }: { data: ExplorationsData }) {
       </div>
 
       {/* ── Modals — portaled to document.body (fixed position always works) ── */}
-      <PaperModal  paper={selectedPaper}   onClose={() => setPaper(null)} />
-      <PatentModal patent={selectedPatent} onClose={() => setPatent(null)} />
-      <CertViewer  cert={selectedCert}     onClose={() => setCert(null)} />
-      <LORViewer   lor={selectedLOR}       onClose={() => setLOR(null)} />
+      <PaperModal  paper={selectedPaper}   onClose={() => setPaper(null)}   onAskSams={onAskSams} />
+      <PatentModal patent={selectedPatent} onClose={() => setPatent(null)}  onAskSams={onAskSams} />
+      <CertViewer  cert={selectedCert}     onClose={() => setCert(null)}  onAskSams={onAskSams} />
+      <LORViewer   lor={selectedLOR}       onClose={() => setLOR(null)}   onAskSams={onAskSams} />
     </>
   )
 }

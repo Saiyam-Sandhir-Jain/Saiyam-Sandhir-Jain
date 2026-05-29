@@ -130,6 +130,9 @@ export interface AgentChatProps {
   open:           boolean
   onOpenChange:   (open: boolean) => void
   samsAvatarUrl?: string | null
+  /** When set, the chat opens and immediately fires this query as the user's first message */
+  pendingQuery?:  string | null
+  onPendingQueryConsumed?: () => void
 }
 
 // ─── Design tokens ─────────────────────────────────────────────────────────────
@@ -299,7 +302,7 @@ function buildHistory(messages: Message[]): HistoryTurn[] {
 }
 
 // ═════════════════════════════════════════════════════════════════════════════
-export default function AgentChat({ open, onOpenChange, samsAvatarUrl }: AgentChatProps) {
+export default function AgentChat({ open, onOpenChange, samsAvatarUrl, pendingQuery, onPendingQueryConsumed }: AgentChatProps) {
   const [input,      setInput]      = useState('')
   const [messages,   setMessages]   = useState<Message[]>([])
   const [busy,       setBusy]       = useState(false)
@@ -319,11 +322,31 @@ export default function AgentChat({ open, onOpenChange, samsAvatarUrl }: AgentCh
 
   useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: 'smooth' }) }, [messages])
   useEffect(() => { if (open) setTimeout(() => inputRef.current?.focus(), 150) }, [open])
+
+  // Auto-fire pendingQuery when chat opens with one
+  useEffect(() => {
+    if (!open || !pendingQuery) return
+    // Small delay so the panel animation starts first
+    const t = setTimeout(() => {
+      send(pendingQuery)
+      onPendingQueryConsumed?.()
+    }, 320)
+    return () => clearTimeout(t)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, pendingQuery])
   useEffect(() => {
     if (!open) return
     const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') onOpenChange(false) }
     document.addEventListener('keydown', handler)
-    return () => document.removeEventListener('keydown', handler)
+    // Push a dummy history entry so the mobile back button closes the chat panel
+    history.pushState({ modal: 'sams-chat' }, '')
+    const handlePop = () => onOpenChange(false)
+    window.addEventListener('popstate', handlePop)
+    return () => {
+      document.removeEventListener('keydown', handler)
+      window.removeEventListener('popstate', handlePop)
+      if (history.state?.modal === 'sams-chat') history.back()
+    }
   }, [open, onOpenChange])
 
   // ── Send ───────────────────────────────────────────────────────────────────

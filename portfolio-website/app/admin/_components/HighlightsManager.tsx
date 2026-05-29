@@ -174,7 +174,7 @@ function ResearchTileEditor({
         <legend className="text-xs font-semibold text-zinc-300 uppercase tracking-wider mb-2">
           Card (visible on home page)
         </legend>
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
             <label className={labelCls}>Heading</label>
             <input className={inputCls} value={heading} onChange={e => setHeading(e.target.value)} />
@@ -215,7 +215,7 @@ function ResearchTileEditor({
           {linked && <span className="ml-2 text-amber-400 normal-case font-normal">— overridden by linked paper</span>}
         </legend>
 
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
             <label className={labelCls}>Modal Heading</label>
             <input className={inputCls} value={modalHeading} onChange={e => setModalHeading(e.target.value)} />
@@ -254,7 +254,7 @@ function ResearchTileEditor({
           <label className={labelCls}>External Links</label>
           <div className="space-y-2 mb-2">
             {modalLinks.map((link, i) => (
-              <div key={i} className="flex gap-2">
+              <div key={i} className="flex flex-wrap sm:flex-nowrap gap-2">
                 <input className={inputCls} value={link.label} onChange={e => updateLink(i, 'label', e.target.value)} placeholder="Label" />
                 <input className={inputCls} value={link.url}   onChange={e => updateLink(i, 'url',   e.target.value)} placeholder="URL" />
                 <button onClick={() => removeLink(i)} className="px-2 py-1 text-xs rounded border border-red-700 text-red-400 hover:bg-red-900/30 shrink-0">×</button>
@@ -405,7 +405,7 @@ function PatentTileEditor({
         <legend className="text-xs font-semibold text-zinc-300 uppercase tracking-wider mb-2">
           Card (visible on home page)
         </legend>
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
             <label className={labelCls}>Heading</label>
             <input className={inputCls} value={heading} onChange={e => setHeading(e.target.value)} />
@@ -446,7 +446,7 @@ function PatentTileEditor({
           {linked && <span className="ml-2 text-amber-400 normal-case font-normal">— overridden by linked patent</span>}
         </legend>
 
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
             <label className={labelCls}>Modal Heading</label>
             <input className={inputCls} value={modalHeading} onChange={e => setModalHeading(e.target.value)} />
@@ -485,7 +485,7 @@ function PatentTileEditor({
           <label className={labelCls}>External Links</label>
           <div className="space-y-2 mb-2">
             {modalLinks.map((link, i) => (
-              <div key={i} className="flex gap-2">
+              <div key={i} className="flex flex-wrap sm:flex-nowrap gap-2">
                 <input className={inputCls} value={link.label} onChange={e => updateLink(i, 'label', e.target.value)} placeholder="Label" />
                 <input className={inputCls} value={link.url}   onChange={e => updateLink(i, 'url',   e.target.value)} placeholder="URL" />
                 <button onClick={() => removeLink(i)} className="px-2 py-1 text-xs rounded border border-red-700 text-red-400 hover:bg-red-900/30 shrink-0">×</button>
@@ -594,7 +594,7 @@ function ProjectTileEditor({ data }: { data: HighlightData }) {
         <legend className="text-xs font-semibold text-zinc-300 uppercase tracking-wider mb-2">
           Card (visible on home page)
         </legend>
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
             <label className={labelCls}>Heading</label>
             <input className={inputCls} value={heading} onChange={e => setHeading(e.target.value)} />
@@ -678,7 +678,7 @@ function ProjectTileEditor({ data }: { data: HighlightData }) {
         <legend className="text-xs font-semibold text-zinc-300 uppercase tracking-wider mb-2">
           Modal content (shown when tile is clicked)
         </legend>
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
             <label className={labelCls}>Modal Heading</label>
             <input className={inputCls} value={modalHeading} onChange={e => setModalHeading(e.target.value)} />
@@ -714,7 +714,7 @@ function ProjectTileEditor({ data }: { data: HighlightData }) {
           <label className={labelCls}>External Links (GitHub, paper URL, etc.)</label>
           <div className="space-y-2 mb-2">
             {modalLinks.map((link, i) => (
-              <div key={i} className="flex gap-2">
+              <div key={i} className="flex flex-wrap sm:flex-nowrap gap-2">
                 <input className={inputCls} value={link.label} onChange={e => updateLink(i, 'label', e.target.value)} placeholder="Label (e.g. GitHub)" />
                 <input className={inputCls} value={link.url}   onChange={e => updateLink(i, 'url',   e.target.value)} placeholder="URL" />
                 <button onClick={() => removeLink(i)} className="px-2 py-1 text-xs rounded border border-red-700 text-red-400 hover:bg-red-900/30 shrink-0">×</button>

@@ -203,7 +203,7 @@ export function ProfileForm({ profile }: { profile: ProfileData }) {
         )}
         <div className="space-y-3">
           {socialLinks.map((link, i) => (
-            <div key={i} className="grid grid-cols-2 gap-3 p-3 rounded-lg border border-zinc-800 bg-zinc-900/40">
+            <div key={i} className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-3 rounded-lg border border-zinc-800 bg-zinc-900/40">
               <div>
                 <label className={labelCls}>Display Name</label>
                 <input

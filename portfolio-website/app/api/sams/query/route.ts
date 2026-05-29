@@ -171,6 +171,12 @@ export async function POST(request: NextRequest) {
         }
       )
       if (isNewToken) setDeviceCookie(resp, deviceToken)
+
+      // Persist chat history (fire-and-forget — never blocks the response)
+      if (upstream.ok && typeof json.answer === 'string') {
+        saveChatTurn(supabase, deviceToken, query, json.answer)
+      }
+
       return resp
     } catch (err) {
       console.error('[sams/query] upstream error:', err)
@@ -201,6 +207,64 @@ export async function POST(request: NextRequest) {
     return resp
   } catch {
     return NextResponse.json({ error: 'Could not reach Sams backend.' }, { status: 502 })
+  }
+}
+
+// ─── Chat history helper ──────────────────────────────────────────────────────
+
+/**
+ * Persists a user→assistant exchange to chat_sessions / chat_messages.
+ * Fire-and-forget — errors are logged but never surface to the caller.
+ */
+async function saveChatTurn(
+  supabase: ReturnType<typeof createClient>,
+  deviceToken: string,
+  userQuery: string,
+  assistantAnswer: string,
+): Promise<void> {
+  try {
+    // Upsert session: find existing open session for this device (active in last 30 min)
+    // or create a new one.
+    const thirtyMinAgo = new Date(Date.now() - 30 * 60 * 1000).toISOString()
+
+    const { data: existing } = await supabase
+      .from('chat_sessions')
+      .select('id')
+      .eq('device_token', deviceToken)
+      .gte('last_active', thirtyMinAgo)
+      .order('last_active', { ascending: false })
+      .limit(1)
+      .single()
+
+    let sessionId: string
+
+    if (existing?.id) {
+      sessionId = existing.id
+      // bump last_active
+      await supabase
+        .from('chat_sessions')
+        .update({ last_active: new Date().toISOString() })
+        .eq('id', sessionId)
+    } else {
+      const { data: newSession, error: sessionErr } = await supabase
+        .from('chat_sessions')
+        .insert({ device_token: deviceToken })
+        .select('id')
+        .single()
+      if (sessionErr || !newSession) {
+        console.error('[sams/chat_history] session insert error:', sessionErr?.message)
+        return
+      }
+      sessionId = newSession.id
+    }
+
+    // Insert user message then assistant message
+    await supabase.from('chat_messages').insert([
+      { session_id: sessionId, role: 'user',      content: userQuery },
+      { session_id: sessionId, role: 'assistant', content: assistantAnswer },
+    ])
+  } catch (err) {
+    console.error('[sams/chat_history] unexpected error:', err)
   }
 }
 

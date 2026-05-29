@@ -161,8 +161,8 @@ function HomeView({
       </div>
 
       {/* Research paper + patent modals — portaled, safe outside motion.div */}
-      <PaperModal  paper={selectedPaper}   onClose={() => setPaper(null)}  onAskSams={onAskSams} />
-      <PatentModal patent={selectedPatent} onClose={() => setPatent(null)} onAskSams={onAskSams} />
+      <PaperModal  paper={selectedPaper}   onClose={() => setPaper(null)}   onAskSams={onAskSams} />
+      <PatentModal patent={selectedPatent} onClose={() => setPatent(null)}  onAskSams={onAskSams} />
     </>
   )
 }

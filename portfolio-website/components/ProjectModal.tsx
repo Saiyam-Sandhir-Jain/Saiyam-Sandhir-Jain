@@ -3,21 +3,29 @@
 import { useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import type { Project } from '@/types/portfolio'
+import { AskSamsButton } from '@/components/AskSamsButton'
 
 interface ProjectModalProps {
-  project: Project | null
-  onClose: () => void
+  project:     Project | null
+  onClose:     () => void
+  onAskSams?:  (query: string) => void
 }
 
-export function ProjectModal({ project, onClose }: ProjectModalProps) {
+export function ProjectModal({ project, onClose, onAskSams }: ProjectModalProps) {
   useEffect(() => {
     if (!project) return
     const handleKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
     document.addEventListener('keydown', handleKey)
     document.body.style.overflow = 'hidden'
+    // Push a dummy history entry so the mobile back button closes this modal
+    history.pushState({ modal: 'project' }, '')
+    const handlePop = () => onClose()
+    window.addEventListener('popstate', handlePop)
     return () => {
       document.removeEventListener('keydown', handleKey)
+      window.removeEventListener('popstate', handlePop)
       document.body.style.overflow = ''
+      if (history.state?.modal === 'project') history.back()
     }
   }, [project, onClose])
 
@@ -37,6 +45,18 @@ export function ProjectModal({ project, onClose }: ProjectModalProps) {
   const viewDisabled   = isResearch && isUpcoming
   const patentDisabled = isPatent && isUpcoming
   const primaryDisabled = viewDisabled || patentDisabled
+
+  // Build the Ask Sams query from available project info
+  const samsQuery = project
+    ? isResearch
+      ? `Tell me about the research paper "${title}"${subtitle ? ` — ${subtitle}` : ''}.`
+      : isPatent
+        ? `Tell me about the patent "${title}"${subtitle ? ` — ${subtitle}` : ''}.`
+        : `Tell me about the project "${title}"${subtitle ? ` — ${subtitle}` : ''}.`
+    : ''
+
+  // Secondary links (links[1]...) — split first secondary vs rest so we can pair it with Ask Sams
+  const secondaryLinks = links.slice(1)
 
   return (
     <AnimatePresence>
@@ -189,14 +209,40 @@ export function ProjectModal({ project, onClose }: ProjectModalProps) {
                   </button>
                 )}
 
-                {/* Additional links */}
-                {links.slice(1).map((link, i) => (
+                {/* Secondary links — first one shares a row with Ask Sams button */}
+                {secondaryLinks.length > 0 && (
+                  <div className="flex gap-2">
+                    <a
+                      href={secondaryLinks[0].url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex-1 py-3 rounded-xl font-heading font-semibold text-sm transition-all duration-200 text-center hover:scale-[1.02]"
+                      style={{
+                        backgroundColor: 'var(--bg-elevated)',
+                        border: '1px solid var(--border)',
+                        color: 'var(--text-secondary)',
+                      }}
+                    >
+                      {secondaryLinks[0].label}
+                    </a>
+                    {onAskSams && (
+                      <AskSamsButton
+                        query={samsQuery}
+                        onAsk={(q) => { onClose(); setTimeout(() => onAskSams(q), 180) }}
+                        variant="inline"
+                      />
+                    )}
+                  </div>
+                )}
+
+                {/* Any remaining secondary links (3rd, 4th…) */}
+                {secondaryLinks.slice(1).map((link, i) => (
                   <a
                     key={i}
                     href={link.url}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="w-full py-3 rounded-xl font-heading font-semibold text-sm transition-all duration-200 text-center"
+                    className="w-full py-3 rounded-xl font-heading font-semibold text-sm transition-all duration-200 text-center hover:scale-[1.02]"
                     style={{
                       backgroundColor: 'var(--bg-elevated)',
                       border: '1px solid var(--border)',
@@ -206,6 +252,15 @@ export function ProjectModal({ project, onClose }: ProjectModalProps) {
                     {link.label}
                   </a>
                 ))}
+
+                {/* If no secondary links, Ask Sams goes full-width above Close */}
+                {secondaryLinks.length === 0 && onAskSams && (
+                  <AskSamsButton
+                    query={samsQuery}
+                    onAsk={(q) => { onClose(); setTimeout(() => onAskSams(q), 180) }}
+                    variant="block"
+                  />
+                )}
 
                 {/* Close */}
                 <button

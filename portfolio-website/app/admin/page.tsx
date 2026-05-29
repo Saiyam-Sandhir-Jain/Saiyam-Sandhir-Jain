@@ -6,6 +6,7 @@ import { SkillsManager }      from './_components/SkillsManager'
 import { HighlightsManager }  from './_components/HighlightsManager'
 import { ExplorationsManager } from './_components/ExplorationsManager'
 import { SamsManager }        from './_components/SamsManager'
+import { ChatAnalytics }      from './_components/ChatAnalytics'
 import { SignOutButton }       from './_components/SignOutButton'
 
 // ─── Fetch all admin data with the service-role client (no RLS wait) ─────────
@@ -44,6 +45,7 @@ const TABS = [
   { id: 'highlights',   label: 'Highlights'   },
   { id: 'explorations', label: 'Explorations' },
   { id: 'sams',         label: '✦ Sams AI'    },
+  { id: 'analytics',    label: '📊 Analytics'  },
 ]
 
 export default async function AdminPage({
@@ -69,18 +71,18 @@ export default async function AdminPage({
     <div className="min-h-screen" style={{ backgroundColor: '#111' }}>
       {/* ── Header ── */}
       <div
-        className="sticky top-0 z-10 border-b border-zinc-800 px-6 py-3 flex items-center justify-between"
+        className="sticky top-0 z-10 border-b border-zinc-800 px-4 sm:px-6 py-3 flex items-center justify-between gap-2"
         style={{ backgroundColor: '#161616' }}
       >
-        <div className="flex items-center gap-4">
-          <h1 className="text-white font-bold text-base">Portfolio Admin</h1>
-          <span className="text-xs text-zinc-500">{session.user.email}</span>
+        <div className="flex items-center gap-2 sm:gap-4 min-w-0">
+          <h1 className="text-white font-bold text-sm sm:text-base shrink-0">Portfolio Admin</h1>
+          <span className="text-xs text-zinc-500 truncate hidden sm:block">{session.user.email}</span>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 sm:gap-3 shrink-0">
           <a
             href="/"
             target="_blank"
-            className="text-xs text-zinc-400 hover:text-white underline"
+            className="text-xs text-zinc-400 hover:text-white underline hidden xs:block"
           >
             View Site ↗
           </a>
@@ -88,14 +90,20 @@ export default async function AdminPage({
         </div>
       </div>
 
-      {/* ── Tab bar ── */}
-      <div className="border-b border-zinc-800 px-6" style={{ backgroundColor: '#161616' }}>
-        <div className="flex gap-0">
+      {/* ── Tab bar — horizontally scrollable on mobile ── */}
+      <div
+        className="border-b border-zinc-800 sticky top-[49px] z-10"
+        style={{ backgroundColor: '#161616' }}
+      >
+        <div
+          className="flex gap-0 overflow-x-auto"
+          style={{ scrollbarWidth: 'none', WebkitOverflowScrolling: 'touch' }}
+        >
           {TABS.map(tab => (
             <a
               key={tab.id}
               href={`/admin?tab=${tab.id}`}
-              className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
+              className={`px-3 sm:px-4 py-3 text-xs sm:text-sm font-medium border-b-2 transition-colors whitespace-nowrap shrink-0 ${
                 activeTab === tab.id
                   ? 'border-orange-500 text-orange-400'
                   : 'border-transparent text-zinc-400 hover:text-white'
@@ -108,7 +116,7 @@ export default async function AdminPage({
       </div>
 
       {/* ── Tab content ── */}
-      <div className="max-w-3xl mx-auto px-6 py-8">
+      <div className="max-w-3xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
         {activeTab === 'profile' && profile && (
           <section>
             <h2 className="text-white font-semibold mb-6">Title Tile — Profile Information</h2>
@@ -170,6 +178,17 @@ export default async function AdminPage({
               Configure the Sams AI agent — upload knowledge files and set the chat avatar.
             </p>
             <SamsManager samsAvatarUrl={profile?.sams_avatar_url ?? null} />
+          </section>
+        )}
+
+        {activeTab === 'analytics' && (
+          <section>
+            <h2 className="text-white font-semibold mb-1">Sams Chat Analytics</h2>
+            <p className="text-xs text-zinc-500 mb-6">
+              Questions visitors have asked Sams, common topics, and rate-limit usage.
+              Chat history is saved server-side and never exposed to visitors.
+            </p>
+            <ChatAnalytics />
           </section>
         )}
 

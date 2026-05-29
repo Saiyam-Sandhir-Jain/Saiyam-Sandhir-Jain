@@ -158,7 +158,7 @@ function PaperForm({
         <label className={labelCls}>Title</label>
         <input className={inputCls} value={d.title} onChange={e => setD(p => ({ ...p, title: e.target.value }))} />
       </div>
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div>
           <label className={labelCls}>Status</label>
           <select className={inputCls} value={d.status} onChange={e => setD(p => ({ ...p, status: e.target.value as any }))}>
@@ -248,7 +248,7 @@ function PapersSection({ initial }: { initial: PaperRow[] }) {
               />
             </>
           ) : (
-            <div className="flex items-start justify-between gap-3">
+            <div className="flex items-start justify-between gap-2 sm:gap-3">
               <div className="flex flex-col gap-1 shrink-0">
                 <button
                   onClick={async () => {
@@ -356,7 +356,7 @@ function PatentForm({
         <label className={labelCls}>Title</label>
         <input className={inputCls} value={d.title} onChange={e => setD(p => ({ ...p, title: e.target.value }))} />
       </div>
-      <div className="grid grid-cols-3 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         <div>
           <label className={labelCls}>Status</label>
           <select className={inputCls} value={d.status} onChange={e => setD(p => ({ ...p, status: e.target.value as any }))}>
@@ -438,7 +438,7 @@ function PatentsSection({ initial }: { initial: PatentRow[] }) {
               />
             </>
           ) : (
-            <div className="flex items-start justify-between gap-3">
+            <div className="flex items-start justify-between gap-2 sm:gap-3">
               <div className="flex flex-col gap-1 shrink-0">
                 <button
                   onClick={async () => {
@@ -543,7 +543,7 @@ function CertForm({
         <label className={labelCls}>Title</label>
         <input className={inputCls} value={d.title} onChange={e => setD(p => ({ ...p, title: e.target.value }))} />
       </div>
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div>
           <label className={labelCls}>Company / Publisher</label>
           <input className={inputCls} value={d.issuer} onChange={e => setD(p => ({ ...p, issuer: e.target.value }))} />
@@ -766,7 +766,7 @@ function LORForm({
         <label className={labelCls}>Recommender Full Name</label>
         <input className={inputCls} value={d.recommender_name} onChange={e => setD(p => ({ ...p, recommender_name: e.target.value }))} />
       </div>
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div>
           <label className={labelCls}>Company / Institute</label>
           <input className={inputCls} value={d.organization} onChange={e => setD(p => ({ ...p, organization: e.target.value }))} />
@@ -877,7 +877,7 @@ function LORsSection({ initial }: { initial: LORRow[] }) {
               <LORPdfManager lor={l} />
             </>
           ) : (
-            <div className="flex items-start justify-between gap-3">
+            <div className="flex items-start justify-between gap-2 sm:gap-3">
               <div className="flex flex-col gap-1 shrink-0">
                 <button
                   onClick={async () => {
@@ -965,12 +965,13 @@ export function ExplorationsManager({ papers, patents, certificates, lors }: Pro
       </p>
 
       {/* Sub-tab bar */}
-      <div className="flex gap-1 border-b border-zinc-800 pb-0">
+      <div className="overflow-x-auto border-b border-zinc-800" style={{ scrollbarWidth: 'none' }}>
+        <div className="flex gap-1 min-w-max">
         {tabs.map(t => (
           <button
             key={t.id}
             onClick={() => setTab(t.id)}
-            className={`px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors ${
+            className={`px-3 sm:px-4 py-2 text-xs sm:text-sm font-medium border-b-2 -mb-px transition-colors whitespace-nowrap ${
               tab === t.id
                 ? 'border-orange-500 text-orange-400'
                 : 'border-transparent text-zinc-400 hover:text-white'
@@ -979,6 +980,7 @@ export function ExplorationsManager({ papers, patents, certificates, lors }: Pro
             {t.label}
           </button>
         ))}
+        </div>
       </div>
 
       {tab === 'papers'       && <PapersSection       initial={papers}       />}
