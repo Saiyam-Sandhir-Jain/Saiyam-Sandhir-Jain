@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase/server'
+import { createClient, createServiceClient } from '@/lib/supabase/server'
 import { NextRequest, NextResponse } from 'next/server'
 import crypto from 'crypto'
 
@@ -174,7 +174,7 @@ export async function POST(request: NextRequest) {
 
       // Persist chat history (fire-and-forget — never blocks the response)
       if (upstream.ok && typeof json.answer === 'string') {
-        saveChatTurn(supabase, deviceToken, query, json.answer)
+        saveChatTurn(deviceToken, query, json.answer)
       }
 
       return resp
@@ -204,6 +204,12 @@ export async function POST(request: NextRequest) {
     const json = await upstream.json()
     const resp = NextResponse.json(json, { status: upstream.status })
     if (isNewToken) setDeviceCookie(resp, deviceToken)
+
+    // Persist chat history even in the fallback path
+    if (upstream.ok && typeof json.answer === 'string') {
+      saveChatTurn(deviceToken, query, json.answer)
+    }
+
     return resp
   } catch {
     return NextResponse.json({ error: 'Could not reach Sams backend.' }, { status: 502 })
@@ -215,13 +221,19 @@ export async function POST(request: NextRequest) {
 /**
  * Persists a user→assistant exchange to chat_sessions / chat_messages.
  * Fire-and-forget — errors are logged but never surface to the caller.
+ *
+ * Uses the service-role client to bypass RLS — chat_sessions and
+ * chat_messages have no anon write policy, so the regular anon client
+ * would silently fail on every insert.
  */
 async function saveChatTurn(
-  supabase: ReturnType<typeof createClient>,
   deviceToken: string,
   userQuery: string,
   assistantAnswer: string,
 ): Promise<void> {
+  // Service client bypasses RLS — required because anon has no write policy
+  // on chat_sessions / chat_messages.
+  const supabase = createServiceClient()
   try {
     // Upsert session: find existing open session for this device (active in last 30 min)
     // or create a new one.

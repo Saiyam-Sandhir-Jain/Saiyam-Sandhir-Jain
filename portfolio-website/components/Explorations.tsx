@@ -794,7 +794,7 @@ function CertViewer({ cert, onClose, onAskSams }: { cert: Certificate | null; on
                 <div className="px-5 py-3 border-t flex items-center justify-end gap-2 shrink-0" style={{ borderColor: 'var(--border-subtle)' }}>
                   {onAskSams && (
                     <AskSamsButton
-                      query={`Tell me about the "${cert.title}" certificate from ${cert.issuer} on Samyak's profile.`}
+                      query={`Tell me about the "${cert.title}" certificate from ${cert.issuer} on Saiyam's profile.`}
                       onAsk={(q) => { onClose(); setTimeout(() => onAskSams(q), 180) }}
                       variant="fit"
                     />
@@ -1064,7 +1064,7 @@ function LORViewer({ lor, onClose, onAskSams }: { lor: LOR | null; onClose: () =
                 <div className="px-5 py-3 border-t flex items-center justify-end gap-2 shrink-0" style={{ borderColor: 'var(--border-subtle)' }}>
                   {onAskSams && (
                     <AskSamsButton
-                      query={`Tell me about the letter of recommendation for Samyak from ${lor.recommender} at ${lor.organization}.`}
+                      query={`Tell me about the letter of recommendation for Saiyam from ${lor.recommender} at ${lor.organization}.`}
                       onAsk={(q) => { onClose(); setTimeout(() => onAskSams(q), 180) }}
                       variant="fit"
                     />

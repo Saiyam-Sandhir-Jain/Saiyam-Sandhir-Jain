@@ -177,7 +177,7 @@ export async function deleteCertificate(id: string) {
   const db = await requireAdmin()
   const { data } = await db.from('certificates').select('image_url').eq('id', id).single()
   if (data?.image_url) {
-    const fileName = data.image_url.split('/').pop()
+    const fileName = data.image_url.split('/').pop()?.split('?')[0]
     if (fileName) await db.storage.from('certificates').remove([fileName])
   }
   const { error } = await db.from('certificates').delete().eq('id', id)
