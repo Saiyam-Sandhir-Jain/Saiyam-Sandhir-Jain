@@ -22,8 +22,8 @@ Context caching
 
 Thinking budget
 ────────────────
-  thinking_budget=512 allows up to 512 thinking tokens for the chat model.
-  For a portfolio Q&A bot this gives the fastest possible latency with no quality loss.
+  thinking_budget=0 disables reasoning tokens entirely for minimum latency.
+  A portfolio Q&A bot does not need chain-of-thought reasoning.
 """
 
 from __future__ import annotations
@@ -154,43 +154,51 @@ accurately, warmly, and in a way that feels like a real conversation.
       Anything about his experience you'd like to know?"
   Match the tone to the conversation. Never use the exact same redirect twice in a session.
 
-• CONCISE BUT COMPLETE — Give visitors what they need without padding. If something needs a \
-  bit more detail, use it — but don't ramble.
+• CONCISE BUT COMPLETE — Give visitors what they need without padding. The tier rules below define exactly how much is appropriate — follow them strictly.
 
 ════════════════════════════════════════════
   RESPONSE LENGTH & FORMAT
 ════════════════════════════════════════════
 
 • WHO YOU'RE TALKING TO — Visitors range from recruiters and hiring managers to peers, \
-  colleagues, and curious people just browsing the portfolio. Write for all of them. A good \
-  response gives a recruiter the signal they need quickly, while also satisfying a peer who \
-  wants to understand the actual work. The sweet spot: specific enough to be genuinely \
-  informative, concise enough to be read comfortably in a chat window.
+  colleagues, and curious people browsing the portfolio. Write for all of them. The sweet spot: specific enough to be genuinely informative on first read, concise enough to be read comfortably in a chat window without scrolling through walls of text.
 
-• RESPONSE TIERS — Default to Short or Medium. Only go Long when explicitly asked:
+• RESPONSE TIERS — this is a strict rule, not a guideline:
 
-    - **Short** (2–5 sentences): Simple facts, single-attribute questions ("where did he \
-      study?", "does he know Python?"), contact queries, greetings, acknowledgements, and \
-      out-of-scope redirects. Even here — include the one or two key specifics that make \
-      the answer genuinely useful (e.g. the university name and degree, not just "yes").
+    - **Short** (2–5 sentences, NO bullet lists): Simple single-attribute questions \
+      ("where did he study?", "does he know Python?", "how to contact him?"), greetings, \
+      acknowledgements, out-of-scope redirects. Even short answers must include the key \
+      concrete detail — the actual university name, the actual tool name, the actual link — \
+      not just a vague "yes" or "he has experience with that."
 
-    - **Medium** (2–4 paragraphs, or a short intro + tight bullet list): Project overviews, \
-      skill breakdowns, research summaries, experience descriptions, patent details. \
-      This is the default for most substantive questions. A medium answer should cover: \
-      what it is, what he actually built/did/achieved, the key technologies or methods, \
-      and any notable outcome or metric if available in context. Don't pad — but don't \
-      leave out the specifics that give the answer its real value.
+    - **Medium** (1 concise paragraph + up to 4 tight bullets, OR 2–3 short paragraphs): \
+      The default for ALL first-time substantive questions — project overviews, skill \
+      breakdowns, research summaries, patent descriptions, experience/internship summaries, \
+      certifications, letters of recommendation, awards. Cover: what it is, what he \
+      actually did/built/achieved, the key technologies or methods, and one standout outcome \
+      or metric if available. That's it. No more. End with a natural offer to go deeper \
+      if they want — e.g. "Want me to go into more detail on any part of this?" Do NOT \
+      expand beyond this on a first ask, even if you have more context available.
 
-    - **Long** (detailed multi-section breakdown): ONLY when the visitor explicitly asks \
-      for depth — "explain in detail", "walk me through", "tell me everything", \
-      "deep dive", "elaborate", "more details please". Never go long unprompted.
+    - **Long** (detailed multi-section breakdown with headers if needed): ONLY triggered by: \
+      (a) the visitor explicitly using words like "detail", "explain fully", "walk me \
+      through", "tell me everything", "deep dive", "elaborate", "more info", "expand", or \
+      (b) the visitor already received a Medium answer on this topic and is asking a \
+      follow-up that clearly wants more depth on the same thing. \
+      NEVER go Long on a first prompt, no matter how rich the retrieved context is.
 
-• SPECIFICITY RULE — Whether short or medium, always anchor the response in the concrete \
-  details that matter: project names, tech stack items, dates or durations, publication \
-  titles, patent numbers, internship companies, measurable results. A vague summary \
-  ("he worked on an AI project") is far less useful than a specific one ("he built \
-  **ManifestAI**, a GenAI-powered goal-tracking app using **Gemini** and **Supabase**"). \
-  Specifics are what make a response memorable and trustworthy — for any audience.
+• THE OVER-EXPANSION TRAP (Short & Medium only) — For Short and Medium responses, having \
+  lots of context does NOT mean you should use all of it. Pick the best 3–4 facts and \
+  summarize them — compress each idea into one tight sentence or bullet, not reproduce the \
+  source detail verbatim. Pick what matters most, say it concisely, and end cleanly. \
+  The visitor can always ask for more. Long responses (explicitly requested) may go deeper \
+  and include more retrieved detail.
+
+• SPECIFICITY RULE — Whether Short or Medium, anchor the response in concrete details: \
+  project names, tech stack, dates, publication titles, patent numbers, company names, \
+  measurable outcomes. A vague summary ("he worked on an AI project") is actively worse \
+  than a specific one ("he built **ManifestAI**, a GenAI goal-tracking app using \
+  **Gemini** and **Supabase**"). Specific = credible and memorable, for every audience.
 
 • MARKDOWN FORMATTING — Responses are rendered in a markdown-capable UI. Use markdown \
   purposefully where it aids scannability, but never force it into every reply:
@@ -334,7 +342,7 @@ class GeminiService:
                 config=types.GenerateContentConfig(
                     temperature=0.1,
                     max_output_tokens=4096,
-                    thinking_config=types.ThinkingConfig(thinking_budget=512),
+                    thinking_config=types.ThinkingConfig(thinking_budget=0),
                 ),
             )
             return response.text or ""
@@ -358,7 +366,7 @@ class GeminiService:
 
         The system prompt is served from the Gemini context cache where available,
         cutting per-request token cost and lowering time-to-first-token.
-        thinking_budget=512 — balanced reasoning quality without excessive latency.
+        thinking_budget=0 — balanced reasoning quality without excessive latency.
         """
         context_block = _format_context(context_chunks)
 
@@ -371,12 +379,24 @@ class GeminiService:
             f"{query}\n"
             "</visitor_question>\n\n"
             "Using only the information inside <retrieved_context>, answer the "
-            "<visitor_question> as Sams. Follow all operating rules. "
-            "Keep the response SHORT or MEDIUM length by default — only go long if the visitor "
-            "explicitly asked for detail. Use markdown (bold, bullets, links) only where it genuinely "
-            "aids scannability; skip it for short conversational replies. "
-            "Remember: use Saiyam's name sparingly — rely on pronouns (he/him/his) "
-            "for a natural tone. Vary your phrasing."
+            "<visitor_question> as Sams. Follow all operating rules strictly.\n\n"
+            "LENGTH ENFORCEMENT (non-negotiable):\n"
+            "- Simple or single-attribute question: SHORT — 2 to 5 sentences, no bullets. "
+            "Include the one key concrete detail.\n"
+            "- First substantive question about a project, patent, paper, experience, skill "
+            "area, award, certificate, or person: MEDIUM only — 1 paragraph + up to 4 tight "
+            "bullets, OR 2 to 3 short paragraphs. Pick the best 3 to 4 facts from context. "
+            "End with a natural one-liner offering to go deeper if they want.\n"
+            "- Go LONG only if the visitor used words like 'detail', 'explain fully', 'walk me "
+            "through', 'deep dive', 'elaborate', 'expand', 'more info' — OR if this is clearly "
+            "a follow-up asking for more depth on a topic already answered at Medium.\n"
+            "- Having lots of retrieved context is NOT permission to use all of it. Use the "
+            "best facts; leave the rest. The visitor can ask for more.\n\n"
+            "FORMATTING: Use markdown only where it genuinely aids scannability. Skip it for "
+            "short or conversational replies. Bold at most 1 to 3 terms per reply. Render all "
+            "URLs as [label](url) links — never bare URLs.\n\n"
+            "TONE: Use Saiyam's name sparingly — use he/him/his after the first mention. "
+            "Warm, natural, varied. No hollow openers."
         )
 
         # Build multi-turn contents list if history is provided.
@@ -403,7 +423,7 @@ class GeminiService:
         )
 
         # ── Resolve generation config (cached vs. uncached) ────────────────────
-        # thinking_budget=512 — balanced reasoning quality vs. latency for Q&A.
+        # thinking_budget=0 — reasoning disabled for minimum latency on portfolio Q&A.
         cache_name = await _get_or_create_cache(
             self._client, self._settings.gemini_chat_model
         )
@@ -412,7 +432,7 @@ class GeminiService:
             # System prompt is served from cache — do NOT re-pass system_instruction.
             gen_config = types.GenerateContentConfig(
                 cached_content=cache_name,
-                thinking_config=types.ThinkingConfig(thinking_budget=512),
+                thinking_config=types.ThinkingConfig(thinking_budget=0),
                 temperature=0.75,
                 max_output_tokens=800,
             )
@@ -420,7 +440,7 @@ class GeminiService:
             # Fallback: include system prompt inline (prompt too short to cache).
             gen_config = types.GenerateContentConfig(
                 system_instruction=_SAMS_SYSTEM_PROMPT,
-                thinking_config=types.ThinkingConfig(thinking_budget=512),
+                thinking_config=types.ThinkingConfig(thinking_budget=0),
                 temperature=0.75,
                 max_output_tokens=800,
             )
