@@ -24,9 +24,85 @@ class ChunkRecord(BaseModel):
 
 class IngestResponse(BaseModel):
     """Returned after a successful /api/ingest call."""
-    filename:     str
-    total_chunks: int
-    message:      str = "Ingestion complete."
+    filename:       str
+    total_chunks:   int
+    message:        str = "Ingestion complete."
+    # Volatility fields — populated only when slug was provided
+    slug:           str | None = None
+    volatility:     str | None = None
+    deleted_chunks: int        = 0
+
+
+class DeleteResponse(BaseModel):
+    """Returned after a successful DELETE /api/ingest/{slug} call."""
+    slug:           str
+    deleted_chunks: int
+    message:        str = "Chunks deleted."
+
+
+class PatchMetadataRequest(BaseModel):
+    """
+    Payload for PATCH /api/ingest/{slug}.
+    All fields are optional — only supplied fields are merged into existing metadata.
+    The text and embeddings of existing chunks are left completely untouched.
+    """
+    volatility:   str | None = Field(
+        default=None,
+        description="New volatility tier: frozen | slow | live.",
+    )
+    version:      int | None = Field(
+        default=None, ge=1,
+        description="New version number.",
+    )
+    last_updated: str | None = Field(
+        default=None,
+        description="New last-updated month, YYYY-MM.",
+    )
+    status:       str | None = Field(
+        default=None,
+        description="Lifecycle status, e.g. completed | ongoing | published.",
+    )
+
+    @field_validator("volatility")
+    @classmethod
+    def validate_volatility(cls, v: str | None) -> str | None:
+        if v is not None and v not in {"frozen", "slow", "live"}:
+            raise ValueError("volatility must be one of: frozen, slow, live")
+        return v
+
+    @field_validator("last_updated")
+    @classmethod
+    def validate_last_updated(cls, v: str | None) -> str | None:
+        if v is not None:
+            import re
+            if not re.fullmatch(r"\d{4}-\d{2}", v):
+                raise ValueError("last_updated must be YYYY-MM")
+        return v
+
+
+class PatchMetadataResponse(BaseModel):
+    """Returned after a successful PATCH /api/ingest/{slug} call."""
+    slug:           str
+    updated_chunks: int
+    patch:          dict[str, Any]   # the fields that were actually changed
+    message:        str = "Metadata updated."
+
+
+class SlugSummary(BaseModel):
+    """Summary row returned by GET /api/ingest/slugs for a single slug."""
+    slug:         str
+    volatility:   str | None = None
+    version:      int | None = None
+    last_updated: str | None = None
+    status:       str | None = None
+    chunk_count:  int        = 0
+    ingested_at:  str | None = None   # ISO timestamp of most recent chunk insert
+
+
+class SlugListResponse(BaseModel):
+    """Returned by GET /api/ingest/slugs."""
+    slugs: list[SlugSummary]
+    total: int
 
 
 # ── Query ─────────────────────────────────────────────────────────────────────
@@ -49,13 +125,13 @@ class QueryRequest(BaseModel):
     """Incoming payload for /api/query."""
     query: str = Field(
         ...,
-        min_length=1,               # allow "ok", single chars — context handles meaning
+        min_length=1,
         max_length=1000,
         description="A question or message for Sams about Saiyam Jain.",
     )
     conversation_history: list[ConversationMessage] = Field(
         default_factory=list,
-        max_length=20,              # cap at 20 turns (10 exchanges) to bound context size
+        max_length=20,
         description=(
             "Prior turns in this conversation, oldest first. "
             "Used to give Sams context for short follow-up messages like 'ok' or 'hmm'. "
