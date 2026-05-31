@@ -118,7 +118,7 @@ function HomeView({
             {/* Left column: Experience → Tall project */}
             <div className="flex flex-col gap-3 flex-1">
               <section id="experience">
-                <Experience items={experience} />
+                <Experience items={experience} onAskSams={onAskSams} />
               </section>
               {tallProject && (
                 <div className="flex flex-col flex-1">
@@ -143,7 +143,7 @@ function HomeView({
           {/* ── Mobile: single column ── */}
           <div className="flex flex-col gap-3 lg:hidden">
             <section id="experience">
-              <Experience items={experience} />
+              <Experience items={experience} onAskSams={onAskSams} />
             </section>
             <div id="portfolio">
               <Skills skills={skills} />

@@ -77,3 +77,14 @@ export async function reorderExperience(orderedIds: string[]) {
   revalidatePath('/')
   return { success: true }
 }
+
+// ─── Swap sort_order between two experience entries ───────────────────────────
+export async function swapExperienceOrder(id1: string, order1: number, id2: string, order2: number) {
+  const db = await requireAdmin()
+  await Promise.all([
+    db.from('experience').update({ sort_order: order2 }).eq('id', id1),
+    db.from('experience').update({ sort_order: order1 }).eq('id', id2),
+  ])
+  revalidatePath('/')
+  return { success: true }
+}

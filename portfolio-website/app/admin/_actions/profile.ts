@@ -157,3 +157,41 @@ export async function uploadResume(formData: FormData) {
   revalidatePath('/')
   return { success: true, url: bustedUrl }
 }
+
+// ─── Upload favicon ───────────────────────────────────────────────────────────
+const ALLOWED_FAVICON_EXT  = new Set(['ico', 'png', 'svg'])
+const ALLOWED_FAVICON_MIME = new Set(['image/x-icon', 'image/vnd.microsoft.icon', 'image/png', 'image/svg+xml'])
+const MAX_FAVICON_BYTES    = 1 * 1024 * 1024  // 1 MB
+
+export async function uploadFavicon(formData: FormData) {
+  const db   = await requireAdmin()
+  const file = formData.get('favicon') as File
+
+  if (!file || file.size === 0)              throw new Error('No file provided')
+  if (file.size > MAX_FAVICON_BYTES)         throw new Error('Favicon must be under 1 MB')
+  const ext = file.name.split('.').pop()?.toLowerCase() ?? ''
+  if (!ALLOWED_FAVICON_EXT.has(ext))         throw new Error('Only .ico, .png, or .svg favicons are allowed')
+  // SVG may come with text/xml or image/svg+xml — be permissive for SVG
+  if (ext !== 'svg' && !ALLOWED_FAVICON_MIME.has(file.type)) throw new Error('Invalid favicon content type')
+
+  const bytes  = await file.arrayBuffer()
+  const buffer = new Uint8Array(bytes)
+  const path   = `favicon.${ext}`
+
+  const { error: uploadError } = await db.storage
+    .from('avatars')
+    .upload(path, buffer, { contentType: file.type, upsert: true })
+  if (uploadError) throw new Error(uploadError.message)
+
+  const { data: { publicUrl } } = db.storage.from('avatars').getPublicUrl(path)
+  const bustedUrl = `${publicUrl}?t=${Date.now()}`
+
+  const { error: dbError } = await db
+    .from('about_profile')
+    .update({ favicon_url: bustedUrl, updated_at: new Date().toISOString() })
+    .neq('id', '00000000-0000-0000-0000-000000000000')
+  if (dbError) throw new Error(dbError.message)
+
+  revalidatePath('/')
+  return { success: true, url: bustedUrl }
+}

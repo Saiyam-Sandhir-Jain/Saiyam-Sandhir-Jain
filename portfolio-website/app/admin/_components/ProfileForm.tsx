@@ -2,7 +2,7 @@
 
 import { useState, useRef } from 'react'
 import { broadcastPortfolioRefresh } from '@/lib/broadcastRefresh'
-import { updateProfileText, updateSocialLinks, uploadAvatar, deleteAvatar, uploadResume } from '../_actions/profile'
+import { updateProfileText, updateSocialLinks, uploadAvatar, deleteAvatar, uploadResume, uploadFavicon } from '../_actions/profile'
 
 interface SocialLink { label: string; url: string; icon: string }
 
@@ -13,6 +13,7 @@ interface ProfileData {
   available:    boolean
   avatar_url:   string | null
   resume_url:   string | null
+  favicon_url:  string | null
   social_links: SocialLink[]
 }
 
@@ -21,6 +22,7 @@ export function ProfileForm({ profile }: { profile: ProfileData }) {
   const [available, setAvailable] = useState(profile.available)
   const [avatarUrl, setAvatarUrl] = useState(profile.avatar_url ?? '')
   const [resumeUrl, setResumeUrl] = useState(profile.resume_url ?? '')
+  const [faviconUrl, setFaviconUrl] = useState(profile.favicon_url ?? '')
   const [loading,   setLoading]   = useState(false)
 
   // Social links state
@@ -36,8 +38,9 @@ export function ProfileForm({ profile }: { profile: ProfileData }) {
   const [socialStatus, setSocialStatus] = useState('')
   const [socialLoading, setSocialLoading] = useState(false)
 
-  const avatarInputRef = useRef<HTMLInputElement>(null)
-  const resumeInputRef = useRef<HTMLInputElement>(null)
+  const avatarInputRef  = useRef<HTMLInputElement>(null)
+  const resumeInputRef  = useRef<HTMLInputElement>(null)
+  const faviconInputRef = useRef<HTMLInputElement>(null)
 
   const handleTextSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
@@ -87,6 +90,21 @@ export function ProfileForm({ profile }: { profile: ProfileData }) {
       const res = await uploadResume(fd)
       setResumeUrl(res.url!)
       setStatus('✓ Résumé uploaded.'); broadcastPortfolioRefresh()
+    } catch (err: any) { setStatus(`✗ ${err.message}`) }
+    finally { setLoading(false) }
+  }
+
+  const handleFaviconUpload = async () => {
+    const file = faviconInputRef.current?.files?.[0]
+    if (!file) return
+    setLoading(true); setStatus('')
+    try {
+      const fd = new FormData()
+      fd.append('favicon', file)
+      const res = await uploadFavicon(fd)
+      setFaviconUrl(res.url!)
+      if (faviconInputRef.current) faviconInputRef.current.value = ''
+      setStatus('✓ Favicon uploaded.'); broadcastPortfolioRefresh()
     } catch (err: any) { setStatus(`✗ ${err.message}`) }
     finally { setLoading(false) }
   }
@@ -189,7 +207,28 @@ export function ProfileForm({ profile }: { profile: ProfileData }) {
 
       <hr className="border-zinc-800" />
 
-      {/* ── Footer social links ── */}
+      {/* ── Favicon upload ── */}
+      <div>
+        <p className="text-sm font-semibold text-zinc-300 mb-2">Favicon</p>
+        <p className="text-xs text-zinc-500 mb-3">
+          Accepted: .ico, .png, .svg — max 1 MB. Appears as the browser tab icon.
+        </p>
+        {faviconUrl && (
+          <div className="mb-2 flex items-center gap-3">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={faviconUrl} alt="Favicon" className="w-8 h-8 object-contain border border-zinc-700 rounded" />
+            <span className="text-xs text-zinc-500 truncate max-w-[200px]">Current favicon</span>
+          </div>
+        )}
+        <div className="flex items-center gap-2">
+          <input ref={faviconInputRef} type="file" accept=".ico,.png,.svg,image/x-icon,image/png,image/svg+xml" className="text-xs text-zinc-400" />
+          <button onClick={handleFaviconUpload} disabled={loading} className={btnCls}>
+            {loading ? 'Uploading…' : 'Upload Favicon'}
+          </button>
+        </div>
+      </div>
+
+      <hr className="border-zinc-800" />
       <div>
         <p className="text-sm font-semibold text-zinc-300 mb-1">Footer Links</p>
         <p className="text-xs text-zinc-500 mb-4">

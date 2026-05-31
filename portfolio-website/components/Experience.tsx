@@ -3,12 +3,14 @@
 import { useState } from 'react'
 import { cn } from '@/lib/utils'
 import type { Experience as ExperienceType } from '@/types/portfolio'
+import { AskSamsButton } from '@/components/AskSamsButton'
 
 interface ExperienceProps {
   items: ExperienceType[]
+  onAskSams?: (q: string) => void
 }
 
-export function Experience({ items }: ExperienceProps) {
+export function Experience({ items, onAskSams }: ExperienceProps) {
   const [hoveredId, setHoveredId] = useState<string | null>(null)
 
   return (
@@ -19,9 +21,16 @@ export function Experience({ items }: ExperienceProps) {
       {/* Section header */}
       <div className="flex items-center gap-2 mb-3">
         <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: '#FF4500' }} />
-        <h2 className="font-heading font-semibold text-xs text-zinc-400 tracking-widest uppercase">
+        <h2 className="font-heading font-semibold text-xs text-zinc-400 tracking-widest uppercase flex-1">
           Experience
         </h2>
+        {onAskSams && (
+          <AskSamsButton
+            query="Walk me through Saiyam's professional experience — the roles he's held, the organisations he's worked with, and what he's built or contributed along the way."
+            onAsk={onAskSams}
+            variant="fit"
+          />
+        )}
       </div>
 
       {/* Experience list — scrollable when more than 4 entries */}
@@ -52,18 +61,7 @@ export function Experience({ items }: ExperienceProps) {
             {/* Left: role + dates */}
             <div>
               <div className="font-heading font-semibold text-sm" style={{ color: '#FF4500' }}>
-                {item.url && item.url !== '#' ? (
-                  <a
-                    href={item.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="hover:underline underline-offset-2"
-                  >
-                    {item.role}
-                  </a>
-                ) : (
-                  item.role
-                )}
+                {item.role}
               </div>
               <div className="text-zinc-500 text-xs font-body mt-0.5">
                 {item.startDate} – {item.endDate}
@@ -72,9 +70,20 @@ export function Experience({ items }: ExperienceProps) {
 
             {/* Right: company */}
             <div className="text-right">
-              <span className="font-body text-xs text-zinc-400">
-                {item.company}
-              </span>
+              {item.url && item.url !== '#' ? (
+                <a
+                  href={item.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="font-body text-xs text-zinc-400 hover:underline underline-offset-2"
+                >
+                  {item.company}
+                </a>
+              ) : (
+                <span className="font-body text-xs text-zinc-400">
+                  {item.company}
+                </span>
+              )}
             </div>
           </li>
         ))}

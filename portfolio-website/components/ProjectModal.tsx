@@ -29,7 +29,7 @@ export function ProjectModal({ project, onClose, onAskSams }: ProjectModalProps)
     }
   }, [project, onClose])
 
-  const typeLabel = project?.type === 'tall' ? 'Mobile App' : project?.label || 'Project'
+  const typeLabel = project?.label || 'Project'
 
   const title       = project?.modalHeading    || project?.title       || ''
   const subtitle    = project?.modalSubheading || project?.description || ''

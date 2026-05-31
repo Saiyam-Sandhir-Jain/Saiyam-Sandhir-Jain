@@ -7,6 +7,7 @@ import {
   addExperience,
   updateExperience,
   deleteExperience,
+  swapExperienceOrder,
 } from '../_actions/experience'
 
 interface ExpItem {
@@ -117,7 +118,7 @@ export function ExperienceManager({ initial }: { initial: ExpItem[] }) {
                   <div><label className={labelCls}>End (or "Present")</label>
                     <input className={inputCls} value={form.end_date} onChange={f('end_date')} /></div>
                 </div>
-                <div><label className={labelCls}>URL (optional)</label>
+                <div><label className={labelCls}>Company URL (optional — links the company name)</label>
                   <input className={inputCls} value={form.url} onChange={f('url')} placeholder="#" /></div>
                 <div className="flex gap-2 mt-1">
                   <button onClick={() => handleUpdate(item.id)} disabled={loading}
@@ -133,9 +134,49 @@ export function ExperienceManager({ initial }: { initial: ExpItem[] }) {
             ) : (
               /* ── Read view ── */
               <div className="flex items-start sm:items-center justify-between gap-3 flex-wrap">
-                <div>
+                {/* ↑↓ reorder buttons */}
+                <div className="flex flex-col gap-1 shrink-0">
+                  <button
+                    onClick={async () => {
+                      const idx = items.findIndex(x => x.id === item.id)
+                      if (idx <= 0) return
+                      const prev = items[idx - 1]
+                      await swapExperienceOrder(item.id, item.sort_order, prev.id, prev.sort_order)
+                      const next = [...items]
+                      next[idx - 1] = { ...item, sort_order: prev.sort_order }
+                      next[idx]     = { ...prev, sort_order: item.sort_order }
+                      setItems(next)
+                    }}
+                    disabled={loading || items.indexOf(item) === 0}
+                    className="px-1 py-0.5 text-xs rounded border border-zinc-700 text-zinc-400 hover:text-white hover:border-zinc-500 disabled:opacity-20"
+                    title="Move up"
+                  >↑</button>
+                  <button
+                    onClick={async () => {
+                      const idx = items.findIndex(x => x.id === item.id)
+                      if (idx >= items.length - 1) return
+                      const next_ = items[idx + 1]
+                      await swapExperienceOrder(item.id, item.sort_order, next_.id, next_.sort_order)
+                      const arr = [...items]
+                      arr[idx]     = { ...next_, sort_order: item.sort_order }
+                      arr[idx + 1] = { ...item, sort_order: next_.sort_order }
+                      setItems(arr)
+                    }}
+                    disabled={loading || items.indexOf(item) === items.length - 1}
+                    className="px-1 py-0.5 text-xs rounded border border-zinc-700 text-zinc-400 hover:text-white hover:border-zinc-500 disabled:opacity-20"
+                    title="Move down"
+                  >↓</button>
+                </div>
+                <div className="flex-1 min-w-0">
                   <p className="text-sm font-semibold text-orange-400">{item.role}</p>
-                  <p className="text-xs text-zinc-400">{item.start_date} – {item.end_date} · {item.company}</p>
+                  <p className="text-xs text-zinc-400">
+                    {item.start_date} – {item.end_date} ·{' '}
+                    {item.url && item.url !== '#' ? (
+                      <a href={item.url} target="_blank" rel="noopener noreferrer" className="hover:underline underline-offset-2">
+                        {item.company}
+                      </a>
+                    ) : item.company}
+                  </p>
                 </div>
                 <div className="flex gap-1.5 shrink-0">
                   <button onClick={() => startEdit(item)} disabled={loading}
@@ -167,7 +208,7 @@ export function ExperienceManager({ initial }: { initial: ExpItem[] }) {
             <div><label className={labelCls}>End (or "Present")</label>
               <input className={inputCls} value={form.end_date} onChange={f('end_date')} placeholder="Present" /></div>
           </div>
-          <div><label className={labelCls}>URL (optional)</label>
+          <div><label className={labelCls}>Company URL (optional — links the company name)</label>
             <input className={inputCls} value={form.url} onChange={f('url')} placeholder="#" /></div>
           <div className="flex gap-2">
             <button onClick={handleAdd} disabled={loading}

@@ -926,7 +926,7 @@ function CertificateCarousel({ certificates, onCertClick }: { certificates: Cert
           'absolute left-0 top-1/2 -translate-y-1/2 -translate-x-2 z-10 w-8 h-8 rounded-full flex items-center justify-center transition-all duration-200',
           canLeft ? 'opacity-100 hover:scale-110' : 'opacity-0 pointer-events-none'
         )}
-        style={{ backgroundColor: '#1c1a18', border: '1px solid var(--border)', boxShadow: '0 4px 16px rgba(0,0,0,0.5)', touchAction: 'manipulation' }}
+        style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)', boxShadow: '0 4px 16px rgba(0,0,0,0.3)', touchAction: 'manipulation' }}
         aria-label="Scroll left"
       >
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" style={{ color: 'var(--text-muted)', stroke: 'var(--text-muted)' }} strokeWidth="2.5"><polyline points="15 18 9 12 15 6"/></svg>
@@ -957,7 +957,7 @@ function CertificateCarousel({ certificates, onCertClick }: { certificates: Cert
           'absolute right-0 top-1/2 -translate-y-1/2 translate-x-2 z-10 w-8 h-8 rounded-full flex items-center justify-center transition-all duration-200',
           canRight ? 'opacity-100 hover:scale-110' : 'opacity-0 pointer-events-none'
         )}
-        style={{ backgroundColor: '#1c1a18', border: '1px solid var(--border)', boxShadow: '0 4px 16px rgba(0,0,0,0.5)', touchAction: 'manipulation' }}
+        style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)', boxShadow: '0 4px 16px rgba(0,0,0,0.3)', touchAction: 'manipulation' }}
         aria-label="Scroll right"
       >
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" style={{ color: 'var(--text-muted)', stroke: 'var(--text-muted)' }} strokeWidth="2.5"><polyline points="9 18 15 12 9 6"/></svg>
