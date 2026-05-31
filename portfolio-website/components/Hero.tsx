@@ -102,7 +102,7 @@ export function Hero({ personal }: { personal: Personal }) {
             <div className="flex items-center gap-2 flex-wrap">
               {/* Résumé */}
               <a
-                href={personal.resumeUrl || '#'}
+                href="/api/resume"
                 target="_blank"
                 rel="noopener noreferrer"
                 className={cn(

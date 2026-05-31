@@ -703,6 +703,15 @@ export default function AgentChat({ open, onOpenChange, samsAvatarUrl, pendingQu
     setMessages([]); setInput(''); setBusy(false); setRateDenied(false)
   }
 
+  // Preload avatar into browser cache before the panel opens.
+  // Without this, the fetch only starts when `open` turns true (the <img>
+  // is inside the early return, so it never enters the DOM while closed).
+  useEffect(() => {
+    if (!samsAvatarUrl) return
+    const img = new window.Image()
+    img.src = samsAvatarUrl
+  }, [samsAvatarUrl])
+
   if (!open) return null
 
   const canSend = !busy && !!input.trim() && (remaining === null || remaining > 0)

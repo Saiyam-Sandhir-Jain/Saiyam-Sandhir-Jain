@@ -819,6 +819,18 @@ function CertViewer({ cert, onClose, onAskSams }: { cert: Certificate | null; on
 // ─── Certificate Carousel ─────────────────────────────────────────────────
 
 function CertificateCarousel({ certificates, onCertClick }: { certificates: Certificate[]; onCertClick: (c: Certificate) => void }) {
+  // Preload every cert image on mount. Browsers skip CSS background-image
+  // fetches for elements scrolled outside an overflow container, so cards
+  // not in the initial viewport only start loading when the user reaches
+  // them. Preloading here puts them all in the browser cache immediately.
+  useEffect(() => {
+    certificates.forEach(cert => {
+      if (!cert.imageUrl) return
+      const img = new window.Image()
+      img.src = cert.imageUrl
+    })
+  }, [certificates])
+
   const scrollRef    = useRef<HTMLDivElement>(null)
   const activeIdxRef = useRef(0)
   const [canLeft,      setCanLeft]      = useState(false)
