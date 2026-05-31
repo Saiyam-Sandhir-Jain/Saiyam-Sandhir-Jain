@@ -128,6 +128,7 @@ export default async function AdminPage({
                 available:    profile.available,
                 avatar_url:   profile.avatar_url,
                 resume_url:   profile.resume_url,
+                favicon_url:  profile.favicon_url,
                 social_links: Array.isArray(profile.social_links) ? profile.social_links : [],
               }}
             />
