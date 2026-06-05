@@ -79,6 +79,72 @@ def _sanitize_input(text: str) -> str:
     return text.strip()
 
 
+# ── Keyword → slug boost map ──────────────────────────────────────────────────
+# When a query matches any keyword pattern, the corresponding slugs are fetched
+# directly from the store and merged into the similarity results, ensuring the
+# right entity chunks are always present even if cosine similarity ranks them low.
+
+_SLUG_BOOST_MAP: list[tuple[re.Pattern, list[str]]] = [
+    (
+        re.compile(r"penguin|intern(ship)?|work(ed)?|job|professional\s+exp|contribution", re.I),
+        ["exp-penguin-apps"],
+    ),
+    (
+        re.compile(r"smart\s*bridge|nutri|byte.?me|summer\s+intern|credit\s+intern", re.I),
+        ["exp-summer-intern", "proj-nutrigen-ai"],
+    ),
+    (
+        re.compile(r"kbvc|knowledge.base.version|rag.pipeline.tool|open.?source", re.I),
+        ["proj-kbvc"],
+    ),
+    (
+        re.compile(r"examd|compiler|dsl|domain.specific|java\s+project", re.I),
+        ["proj-examdc"],
+    ),
+    (
+        re.compile(r"\bmlp\b|markov.logic|logos.module|reinforcement", re.I),
+        ["res-mlp"],
+    ),
+    (
+        re.compile(r"\bamber\b|word.sense|ieee|sceecs|published.paper|research.paper", re.I),
+        ["res-amber"],
+    ),
+    (
+        re.compile(r"patent|chopping.board|sign.language|glove|isl\b", re.I),
+        ["pat-chopping-board", "pat-sign-language-glove"],
+    ),
+    (
+        re.compile(r"tech.stack|programming|language|framework|tools?\s+he|aws|python|java\b", re.I),
+        ["skills-tech-stack"],
+    ),
+    (
+        re.compile(r"experience|background|worked|roles|organi[sz]ation|walk.me.through|overview|profile|who.is|what.has.he|tell.me.about", re.I),
+        ["portfolio-summary", "exp-penguin-apps"],
+    ),
+    (
+        re.compile(r"project|built|created|developed|shipped", re.I),
+        ["portfolio-summary", "proj-kbvc", "proj-examdc"],
+    ),
+    (
+        re.compile(r"contact|email|linkedin|github|reach|resume|cv\b", re.I),
+        ["contact-and-profiles"],
+    ),
+]
+
+
+def _boosted_slugs(query: str) -> list[str]:
+    """Return a deduplicated list of slugs to boost based on query keywords."""
+    seen: set[str] = set()
+    result: list[str] = []
+    for pattern, slugs in _SLUG_BOOST_MAP:
+        if pattern.search(query):
+            for s in slugs:
+                if s not in seen:
+                    seen.add(s)
+                    result.append(s)
+    return result
+
+
 # ── Route ─────────────────────────────────────────────────────────────────────
 
 @router.post(
@@ -133,6 +199,24 @@ async def sams_query(
             status_code=status.HTTP_502_BAD_GATEWAY,
             detail="Failed to search the knowledge base. Please try again later.",
         )
+
+    # ── 4b. Slug boost — fetch entity chunks for keyword-matched slugs ────────
+    # For broad queries (e.g. "walk me through his experience"), cosine similarity
+    # alone may rank high-level summary chunks above the specific entity files.
+    # We directly fetch the first chunk of each boosted slug and prepend them,
+    # ensuring the right detail is always present in the context window.
+    boost_slugs = _boosted_slugs(clean_query)
+    if boost_slugs:
+        try:
+            boosted = await db.fetch_chunks_by_slugs(boost_slugs, chunks_per_slug=2)
+            # Merge: prepend boosted chunks, then append similarity results not already present
+            seen_ids: set[str] = {c.id for c in boosted}
+            merged = boosted + [c for c in chunks if c.id not in seen_ids]
+            chunks = merged[:payload.match_count + len(boost_slugs)]  # keep a reasonable cap
+            logger.info("Slug boost added %d chunk(s) for slugs: %s", len(boosted), boost_slugs)
+        except Exception:
+            logger.warning("Slug boost fetch failed — falling back to similarity results only")
+            # Non-fatal: continue with original similarity results
 
     # ── 5. Handle no results ──────────────────────────────────────────────────
     if not chunks:

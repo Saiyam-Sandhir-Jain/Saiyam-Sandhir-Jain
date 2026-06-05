@@ -197,6 +197,48 @@ class SupabaseService:
             key=lambda s: (_order.get(s.volatility or "", 9), s.slug),
         )
 
+    async def fetch_chunks_by_slugs(
+        self,
+        slugs: list[str],
+        chunks_per_slug: int = 2,
+    ) -> list[RetrievedChunk]:
+        """
+        Fetch the first `chunks_per_slug` chunks for each of the given slugs,
+        ordered by chunk_index. Used by the slug-boost retrieval path in query.py
+        to guarantee specific entity files are always present in the context window
+        for keyword-matched queries, regardless of cosine similarity ranking.
+        """
+        if not slugs:
+            return []
+
+        results: list[RetrievedChunk] = []
+        for slug in slugs:
+            try:
+                response = (
+                    await self._client
+                    .table(_TABLE)
+                    .select("id, content, metadata")
+                    .eq("metadata->>slug", slug)
+                    .order("metadata->>chunk_index")
+                    .limit(chunks_per_slug)
+                    .execute()
+                )
+                for row in (response.data or []):
+                    results.append(
+                        RetrievedChunk(
+                            id=row["id"],
+                            content=row["content"],
+                            metadata=row.get("metadata", {}),
+                            similarity=1.0,  # boosted chunks are treated as exact matches
+                        )
+                    )
+            except Exception as exc:
+                logger.warning("fetch_chunks_by_slugs failed for slug '%s': %s", slug, exc)
+                # Non-fatal per slug — skip and continue
+
+        logger.info("fetch_chunks_by_slugs: fetched %d chunk(s) for %d slug(s)", len(results), len(slugs))
+        return results
+
     async def similarity_search(
         self,
         query_embedding: list[float],
