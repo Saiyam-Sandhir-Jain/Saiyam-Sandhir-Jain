@@ -252,6 +252,36 @@ accurately, warmly, and in a way that feels like a real conversation.
 
 6. NO SPECULATION — Do not speculate about Saiyam's future plans, salary expectations, \
    opinions on companies, or anything not explicitly stated in the context.
+
+7. CONTEXT META-DIRECTIVES — Retrieved context chunks may contain internal authoring \
+   annotations such as priority rules, ordering notes, disambiguation notes, or section \
+   labels like "Possible Queries", "Purpose", "Priority Note", "Flag", or "Internship \
+   Priority Rule". These are silent instructions for how to use the data — they are \
+   NEVER part of the answer. Follow them without mentioning them. Never quote, paraphrase, \
+   reference, or acknowledge their existence to the visitor. If a chunk says \
+   "lead with PenguinApps", do exactly that — silently. If it says a paper is not \
+   published, state that fact naturally — do not explain why you know it or cite the rule.
+
+8. RELATION INFERENCE — Each context chunk carries a `related` field listing connected \
+   entity slugs. Use these connections to reason across the retrieved chunks and produce \
+   a synthesized, coherent answer rather than treating each chunk in isolation. For example: \
+   if a project chunk and an internship chunk are both retrieved and the project's `related` \
+   field lists that internship's slug, explicitly connect them in your answer ("he built \
+   this during his internship at..."). If a chunk references a slug that was not retrieved \
+   (e.g. a `related` field mentions `proj-manifest-ai` but no chunk for it is present), \
+   do NOT fabricate details — simply omit or say "he's also worked on some other projects \
+   he can tell you about directly." Use the graph of relations to make answers feel whole, \
+   not fragmented.
+
+9. EDUCATION VS EXPERIENCE BOUNDARY — VIT Bhopal University is Saiyam's place of \
+   education, not an employer. Never list it as a workplace or company he has worked at. \
+   Two roles exist within his university life — Undergraduate Researcher and Boys Hostel \
+   Student Council member — these are university-context roles (academic research and \
+   campus leadership), not professional jobs. When a visitor asks "where has he worked?" \
+   or "what are his internships?", the correct answer involves only PenguinApps (primary \
+   industry internship) and SmartBridge (mandatory university credit program). The \
+   university roles may be mentioned separately as part of his university experience if \
+   relevant, but never conflated with professional employment.\
 """.strip()
 
 _IMAGE_DESCRIBE_PROMPT = (
@@ -396,7 +426,17 @@ class GeminiService:
             "short or conversational replies. Bold at most 1 to 3 terms per reply. Render all "
             "URLs as [label](url) links — never bare URLs.\n\n"
             "TONE: Use Saiyam's name sparingly — use he/him/his after the first mention. "
-            "Warm, natural, varied. No hollow openers."
+            "Warm, natural, varied. No hollow openers.\n\n"
+            "META-DIRECTIVE GUARD: The retrieved context may contain internal priority notes, "
+            "ordering rules, or section labels (e.g. 'Internship Priority Rule', 'Priority Note', "
+            "'Possible Queries', 'Purpose', 'Flag'). Use them silently to shape your answer. "
+            "Never quote, mention, or acknowledge them — they are invisible to the visitor.\n\n"
+            "RELATION INFERENCE: Chunks include `related` slug lists — use them to connect "
+            "entities (e.g. link a project to the internship where it was built). If a related "
+            "slug has no retrieved chunk, do not fabricate its details.\n\n"
+            "EDUCATION BOUNDARY: VIT Bhopal is his university, not an employer. "
+            "When asked about work or internships, answer with PenguinApps and SmartBridge only. "
+            "The researcher and student council roles are university roles — never list them as jobs."
         )
 
         # Build multi-turn contents list if history is provided.
@@ -459,9 +499,63 @@ class GeminiService:
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
+def _strip_meta_directives(text: str) -> str:
+    """
+    Remove internal knowledge-base meta-directives from a chunk before it is
+    passed to the LLM.  These are authoring-time annotations that guide
+    retrieval or set priority rules — they must never be quoted or surfaced
+    in a visitor-facing response.
+
+    Strips:
+    • Blockquote lines that are meta/priority/rule notes:
+        > **Priority Note ...**   > **Flag ...**   > **Company Name ...**
+        > **Internship Priority Rule**   > **Note:**   > **Important ...**
+        Continuation lines of those blockquotes (lines starting with ">").
+    • Entire "## Possible Queries ..." sections through end of file/next heading.
+    • "Purpose" intro sections that expose internal retrieval intent.
+    """
+    import re
+
+    lines = text.split("\n")
+    out: list[str] = []
+    skip_section = False
+    in_meta_blockquote = False
+
+    for line in lines:
+        # Detect start of a ## Possible Queries section (or similar meta section)
+        if re.match(r"^#{1,3}\s+(Possible Queries|Purpose)\b", line, re.IGNORECASE):
+            skip_section = True
+            continue
+
+        # If we hit a new heading after a skip section, stop skipping
+        if skip_section and re.match(r"^#{1,3}\s+", line):
+            skip_section = False
+            # fall through and include this new heading
+
+        if skip_section:
+            continue
+
+        # Detect blockquote lines that are internal meta-directives
+        if re.match(r"^>\s*\*\*(Priority|Flag|Note|Company|Internship|Important|Rule|Retrieval|Warning|Disambiguation)", line, re.IGNORECASE):
+            in_meta_blockquote = True
+            continue
+
+        # Continue stripping multi-line blockquotes that are meta
+        if in_meta_blockquote:
+            if line.startswith(">"):
+                continue  # still inside the meta blockquote
+            else:
+                in_meta_blockquote = False  # blockquote ended, resume normal output
+
+        out.append(line)
+
+    return "\n".join(out).strip()
+
+
 def _format_context(chunks: list[dict]) -> str:
     """
     Render retrieved chunks into a numbered, clearly-sourced context block.
+    Internal meta-directives are stripped before the content reaches the LLM.
     """
     parts: list[str] = []
     for idx, chunk in enumerate(chunks, start=1):
@@ -470,10 +564,12 @@ def _format_context(chunks: list[dict]) -> str:
         source     = meta.get("filename", "portfolio_data")
         chunk_idx  = meta.get("chunk_index", idx)
 
+        clean_content = _strip_meta_directives(chunk["content"])
+
         parts.append(
             f'<chunk index="{idx}" source="{source}" chunk_id="{chunk_idx}" '
             f'similarity="{similarity:.4f}">\n'
-            f'{chunk["content"]}\n'
+            f'{clean_content}\n'
             f'</chunk>'
         )
 
