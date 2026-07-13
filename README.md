@@ -20,7 +20,7 @@ B.Tech CSE (AI/ML), VIT Bhopal '27
   <img src="https://img.shields.io/badge/View%20full%20portfolio%20%E2%86%92-000000?style=for-the-badge" alt="View Portfolio"/>
 </a>
 
-For project write-ups, live demos, and my full experience timeline, see my portfolio site
+For project write-ups, live demos, and my full experience timeline, see my portfolio site.
 
 ---
 
