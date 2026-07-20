@@ -3,6 +3,7 @@ import './globals.css'
 import { SmoothScrollProvider } from '@/components/SmoothScrollProvider'
 import data from '@/data/portfolio.json'
 import { createClient } from '@/lib/supabase/server'
+import { Analytics } from '@vercel/analytics/next'
 
 export const metadata: Metadata = {
   title: data.meta.title,
@@ -34,6 +35,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         <SmoothScrollProvider>
           {children}
         </SmoothScrollProvider>
+        <Analytics />
       </body>
     </html>
   )
