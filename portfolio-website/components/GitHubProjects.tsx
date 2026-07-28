@@ -454,16 +454,11 @@ export function GitHubProjects() {
           return
         }
 
-        // ── Fetch fresh ──────────────────────────────────────────────────
-        const [contribRes, reposRes] = await Promise.all([
-          fetch(`https://github-contributions-api.jogruber.de/v4/${GH_USER}?y=last`),
-          fetch(`https://api.github.com/users/${GH_USER}/repos?sort=updated&per_page=40&type=public`),
-        ])
+        // ── Fetch fresh (via server-side proxy, see app/api/github/route.ts) ──
+        const res = await fetch('/api/github')
+        if (!res.ok) throw new Error('API error')
 
-        if (!contribRes.ok || !reposRes.ok) throw new Error('API error')
-
-        const contrib: ContribData = await contribRes.json()
-        const rawRepos: GHRepo[]   = await reposRes.json()
+        const { contrib, repos: rawRepos }: { contrib: ContribData; repos: GHRepo[] } = await res.json()
 
         // Persist to cache before setting state
         cacheSet('contrib', contrib)
