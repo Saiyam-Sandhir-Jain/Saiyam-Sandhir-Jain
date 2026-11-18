@@ -1,67 +1,67 @@
 import { createServerClient, type CookieOptions } from '@supabase/ssr'
-import { cookies } from 'next/headers'
-import { NextResponse } from 'next/server'
-import type { NextRequest } from 'next/server'
+import { NextResponse, type NextRequest } from 'next/server'
 
 /**
- * OAuth callback handler.
- * Supabase redirects here after Google login with a one-time `code`.
- * We exchange it for a session, then enforce the admin-email allowlist.
+ * Supabase OAuth callback.
+ * Exchanges the one-time PKCE code and persists every auth cookie on the
+ * redirect response so the following /admin request receives the session.
  */
 export async function GET(request: NextRequest) {
-  const { searchParams, origin } = new URL(request.url)
-  const code = searchParams.get('code')
+  const requestUrl = new URL(request.url)
+  const code = requestUrl.searchParams.get('code')
+  const rawNext = requestUrl.searchParams.get('next') ?? '/admin'
 
-  // ── Validate `next` to prevent open-redirect attacks ──────────────────────
-  // Only allow relative paths that start with a single slash (not `//evil.com`).
-  const rawNext = searchParams.get('next') ?? '/admin'
-  const next    = rawNext.startsWith('/') && !rawNext.startsWith('//')
+  // Only allow same-origin relative destinations.
+  const next = rawNext.startsWith('/') && !rawNext.startsWith('//')
     ? rawNext
     : '/admin'
 
-  // On Vercel the reverse proxy sets x-forwarded-host to the real public domain.
-  const forwardedHost = request.headers.get('x-forwarded-host')
-  const publicOrigin  =
-    process.env.NODE_ENV === 'production' && forwardedHost
-      ? `https://${forwardedHost}`
-      : origin
-
-  if (code) {
-    const cookieStore = cookies()
-
-    const supabase = createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      {
-        cookies: {
-          get(name: string) {
-            return cookieStore.get(name)?.value
-          },
-          set(name: string, value: string, options: CookieOptions) {
-            cookieStore.set({ name, value, ...options })
-          },
-          remove(name: string, options: CookieOptions) {
-            cookieStore.set({ name, value: '', ...options })
-          },
-        },
-      }
-    )
-
-    const { error } = await supabase.auth.exchangeCodeForSession(code)
-
-    if (!error) {
-      // Use getUser() for authoritative JWT validation
-      const { data: { user } } = await supabase.auth.getUser()
-      const adminEmail = process.env.ADMIN_EMAIL
-
-      if (user?.email !== adminEmail) {
-        await supabase.auth.signOut()
-        return NextResponse.redirect(`${publicOrigin}/admin/login?error=unauthorized`)
-      }
-
-      return NextResponse.redirect(`${publicOrigin}${next}`)
-    }
+  const redirectToLogin = (reason: 'auth_failed' | 'unauthorized') => {
+    const url = new URL('/admin/login', requestUrl.origin)
+    url.searchParams.set('error', reason)
+    return NextResponse.redirect(url)
   }
 
-  return NextResponse.redirect(`${publicOrigin}/admin/login?error=auth_failed`)
+  if (!code) return redirectToLogin('auth_failed')
+
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+  const adminEmail = process.env.ADMIN_EMAIL?.trim().toLowerCase()
+
+  if (!supabaseUrl || !supabaseAnonKey || !adminEmail) {
+    console.error('OAuth callback configuration is incomplete.')
+    return redirectToLogin('auth_failed')
+  }
+
+  // Use the final redirect response as the cookie sink. This avoids losing
+  // refreshed/session cookies when returning a NextResponse.redirect().
+  const destination = new URL(next, requestUrl.origin)
+  let response = NextResponse.redirect(destination)
+
+  const supabase = createServerClient(supabaseUrl, supabaseAnonKey, {
+    cookies: {
+      getAll() {
+        return request.cookies.getAll()
+      },
+      setAll(cookiesToSet: { name: string; value: string; options: CookieOptions }[]) {
+        cookiesToSet.forEach(({ name, value, options }) => {
+          response.cookies.set(name, value, options)
+        })
+      },
+    },
+  })
+
+  const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(code)
+  if (exchangeError) {
+    console.error('Supabase OAuth code exchange failed:', exchangeError.message)
+    return redirectToLogin('auth_failed')
+  }
+
+  const { data: { user }, error: userError } = await supabase.auth.getUser()
+  if (userError || !user?.email || user.email.trim().toLowerCase() !== adminEmail) {
+    await supabase.auth.signOut()
+    return redirectToLogin('unauthorized')
+  }
+
+  return response
 }

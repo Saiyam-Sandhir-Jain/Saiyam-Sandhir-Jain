@@ -55,9 +55,10 @@ export default async function AdminPage({
 }) {
   // ── Auth guard ──────────────────────────────────────────────────────────────
   const supabase = createClient()
-  const { data: { session } } = await supabase.auth.getSession()
+  const { data: { user }, error: authError } = await supabase.auth.getUser()
+  const adminEmail = process.env.ADMIN_EMAIL?.trim().toLowerCase()
 
-  if (!session || session.user.email !== process.env.ADMIN_EMAIL) {
+  if (authError || !user?.email || !adminEmail || user.email.trim().toLowerCase() !== adminEmail) {
     redirect('/admin/login')
   }
 
@@ -76,7 +77,7 @@ export default async function AdminPage({
       >
         <div className="flex items-center gap-2 sm:gap-4 min-w-0">
           <h1 className="text-white font-bold text-sm sm:text-base shrink-0">Portfolio Admin</h1>
-          <span className="text-xs text-zinc-500 truncate hidden sm:block">{session.user.email}</span>
+          <span className="text-xs text-zinc-500 truncate hidden sm:block">{user.email}</span>
         </div>
         <div className="flex items-center gap-2 sm:gap-3 shrink-0">
           <a

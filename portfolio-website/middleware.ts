@@ -2,72 +2,60 @@ import { createServerClient, type CookieOptions } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
 export async function middleware(request: NextRequest) {
-  const { pathname } = request.nextUrl
+  const { pathname, searchParams } = request.nextUrl
 
-  // ── Only run on /admin routes ──────────────────────────────────────────────
-  if (!pathname.startsWith('/admin')) {
-    return NextResponse.next()
+  // Supabase falls back to its configured Site URL when the requested
+  // redirectTo URL is not on its Redirect URLs allowlist. If that fallback
+  // lands on '/', forward the one-time code to our real callback handler.
+  if (pathname === '/' && searchParams.has('code')) {
+    const callbackUrl = request.nextUrl.clone()
+    callbackUrl.pathname = '/auth/callback'
+    callbackUrl.searchParams.set('next', '/admin')
+    return NextResponse.redirect(callbackUrl)
   }
 
-  // ── Always allow the login page and auth callback ──────────────────────────
-  if (pathname === '/admin/login' || pathname.startsWith('/auth/')) {
-    return NextResponse.next()
-  }
+  if (!pathname.startsWith('/admin')) return NextResponse.next()
+  if (pathname === '/admin/login') return NextResponse.next()
 
-  // ── Build a response we can mutate (to forward refreshed cookies) ──────────
-  let response = NextResponse.next({
-    request: { headers: request.headers },
-  })
-
-  // ── Create Supabase client that reads/writes cookies on the request ────────
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        get(name: string) {
-          return request.cookies.get(name)?.value
-        },
-        set(name: string, value: string, options: CookieOptions) {
-          request.cookies.set({ name, value, ...options })
-          response = NextResponse.next({ request: { headers: request.headers } })
-          response.cookies.set({ name, value, ...options })
-        },
-        remove(name: string, options: CookieOptions) {
-          request.cookies.set({ name, value: '', ...options })
-          response = NextResponse.next({ request: { headers: request.headers } })
-          response.cookies.set({ name, value: '', ...options })
-        },
-      },
-    }
-  )
-
-  // ── Use getUser() — validates JWT against Supabase server (more secure than
-  //    getSession() which only reads the local cookie without server validation)
-  const {
-    data: { user },
-    error,
-  } = await supabase.auth.getUser()
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+  const adminEmail = process.env.ADMIN_EMAIL?.trim().toLowerCase()
 
   const loginUrl = new URL('/admin/login', request.url)
-
-  // Not authenticated or JWT invalid → redirect to login
-  if (error || !user) {
+  if (!supabaseUrl || !supabaseAnonKey || !adminEmail) {
+    loginUrl.searchParams.set('error', 'auth_failed')
     return NextResponse.redirect(loginUrl)
   }
 
-  // Wrong email → sign out + redirect with error
-  const adminEmail = process.env.ADMIN_EMAIL
-  if (user.email !== adminEmail) {
+  let response = NextResponse.next({ request })
+  const supabase = createServerClient(supabaseUrl, supabaseAnonKey, {
+    cookies: {
+      getAll() {
+        return request.cookies.getAll()
+      },
+      setAll(cookiesToSet: { name: string; value: string; options: CookieOptions }[]) {
+        cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value))
+        response = NextResponse.next({ request })
+        cookiesToSet.forEach(({ name, value, options }) => {
+          response.cookies.set(name, value, options)
+        })
+      },
+    },
+  })
+
+  // getUser() validates the JWT with Supabase; do not trust getSession() here.
+  const { data: { user }, error } = await supabase.auth.getUser()
+  if (error || !user) return NextResponse.redirect(loginUrl)
+
+  if (!user.email || user.email.trim().toLowerCase() !== adminEmail) {
     await supabase.auth.signOut()
     loginUrl.searchParams.set('error', 'unauthorized')
     return NextResponse.redirect(loginUrl)
   }
 
-  // ── Authenticated + authorized — let through ───────────────────────────────
   return response
 }
 
 export const config = {
-  matcher: ['/admin/:path*'],
+  matcher: ['/', '/admin/:path*'],
 }
